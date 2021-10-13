@@ -7,7 +7,7 @@
       - desktop
       - network-latency
       - powersave
-    amdgpu_profiles:
+    amdgpu_profiles: # statically defined mapping of the contents in /sys/class/drm/{{ card }}/device/pp_power_profile_mode
       - { name: 'bootup_default', value: 0 }
       - { name: '3D_fullscreen', value: 1 }
       - { name: 'powersaving', value: 2 }
