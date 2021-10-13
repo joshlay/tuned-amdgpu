@@ -1,0 +1,6 @@
+[main]
+include={{ item.1 }}
+summary={{ item.1 }} based profile with AMDGPU pp_power_profile_mode = {{ item.0.value }} ({{ item.0.name }})
+
+[sysfs]
+/sys/class/drm/{{ card }}/device/pp_power_profile_mode = {{ item.0.value }}
