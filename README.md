@@ -3,9 +3,19 @@
 hacky solution to integrate AMDGPU power profile control in `tuned` with Ansible
 
 ## Notable variables
- - `card`: Sets the `card#` to use in the qualified sysfs path `/sys/class/drm/{{ card }}/device/pp_power_profile_mode`
- - `base_profiles`: List of base tuned profiles to clone in the new AMDGPU profiles
- - `amdgpu_profiles`: Mapping of AMDGPU power profiles (`name`/`value`) defined in the `sysfs` path above.  Varies, sample is with a 6900XT.
+ - `card`: Sets the `card#` to use in the qualified sysfs path `/sys/class/drm/{{ card }}/device/pp_power_profile_mode`.  Default: `card0`
+ - `base_profiles`: List of base tuned profiles to clone in the new AMDGPU profiles.  Defaults:
+   - `desktop`
+   - `network-latency`
+   - `powersave`
+ - `amdgpu_profiles`: Mapping of AMDGPU power profiles (`name`/`value`) defined in the `sysfs` path above.  Varies, sample is with a 6900XT.  Defaults:
+   - `{ name: 'bootup_default', value: 0 }`
+   - `{ name: '3D_fullscreen', value: 1 }`
+   - `{ name: 'powersaving', value: 2 }`
+   - `{ name: 'video', value: 3 }`
+   - `{ name: 'VR', value: 4 }`
+   - `{ name: 'compute', value: 5 }`
+   - `{ name: 'custom', value: 6 }`
 
 ## Example profiles/output
 ```
