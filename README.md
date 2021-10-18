@@ -1,6 +1,11 @@
 # tuned-amdgpu
 
-hacky solution to integrate AMDGPU power profile control in `tuned`
+hacky solution to integrate AMDGPU power profile control in `tuned` with Ansible
+
+## Notable variables
+ - `card`: Sets the `card#` to use in the qualified sysfs path `/sys/class/drm/{{ card }}/device/pp_power_profile_mode`
+ - `base_profiles`: List of base tuned profiles to clone in the new AMDGPU profiles
+ - `amdgpu_profiles`: Mapping of AMDGPU power profiles (`name`/`value`) defined in the `sysfs` path above.  Varies, sample is with a 6900XT.
 
 ## Example profiles/output
 ```
