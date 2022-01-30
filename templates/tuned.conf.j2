@@ -1,6 +1,19 @@
 [main]
 include={{ item.1 }}
-summary={{ item.1 }} based profile with AMDGPU pp_power_profile_mode = {{ item.0.value }} ({{ item.0.name }})
+summary={{ item.1 }} + TCP/RAID tweaks + AMDGPU pp_power_profile_mode = {{ item.0.value }} ({{ item.0.name }})
 
 [sysfs]
+/sys/class/drm/{{ card }}/device/power_dpm_force_performance_level = manual
 /sys/class/drm/{{ card }}/device/pp_power_profile_mode = {{ item.0.value }}
+
+[sysctl]
+net.core.default_qdisc=fq
+net.ipv4.tcp_congestion_control=bbr
+net.core.rmem_max=33554432
+net.core.wmem_max=33554432
+{# net.core.rmem_max=4194304 #}
+{# net.core.wmem_max=1048576 #}
+dev.raid.speed_limit_min=600000
+dev.raid.speed_limit_max=9000000
+# allow some games to run (eg: DayZ)
+vm.max_map_count=1048576
