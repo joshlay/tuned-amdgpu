@@ -3,18 +3,27 @@
   become: yes
   vars:
     card: card0 # default to card0
-    base_profiles: # standard tuned profiles available on Fedora
+    base_profiles: # standard tuned profiles available on Fedora, should dynamically discover?
+      - balanced
       - desktop
+      - latency-performance
       - network-latency
+      - network-throughput
       - powersave
+      - virtual-host
     amdgpu_profiles: # statically defined mapping of the contents in /sys/class/drm/{{ card }}/device/pp_power_profile_mode
-      - { name: 'bootup_default', value: 0 }
-      - { name: '3D_fullscreen', value: 1 }
+#      - { name: 'bootup_default', value: 0 }
+#      - { name: '3D_fullscreen', value: 1 }
       - { name: 'powersaving', value: 2 }
       - { name: 'video', value: 3 }
       - { name: 'VR', value: 4 }
-      - { name: 'compute', value: 5 }
-      - { name: 'custom', value: 6 }
+#      - { name: 'compute', value: 5 }
+#      - { name: 'custom', value: 6 }
+  handlers:
+    - name: restart tuned
+      ansible.builtin.service:
+        name: tuned
+        state: restarted
   tasks:
     - name: ensure tuned is installed
       package:
@@ -23,7 +32,7 @@
     - name: create custom profile directories
       file:
         state: directory
-        path: /etc/tuned/{{ item.1 }}_amdgpu_{{ item.0.name }}
+        path: /etc/tuned/{{ item.1 }}-amdgpu-{{ item.0.name }}
         mode: "0755"
       with_nested:
         - "{{ amdgpu_profiles }}"
@@ -31,10 +40,11 @@
     - name: template custom tuned profiles
       template:
         src: templates/tuned.conf.j2
-        dest: /etc/tuned/{{ item.1 }}_amdgpu_{{ item.0.name }}/tuned.conf
+        dest: /etc/tuned/{{ item.1 }}-amdgpu-{{ item.0.name }}/tuned.conf
         owner: root
         group: root
         mode: "0644"
       with_nested:
         - "{{ amdgpu_profiles }}"
         - "{{ base_profiles }}"
+      notify: restart tuned
