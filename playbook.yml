@@ -25,6 +25,22 @@
         name: tuned
         state: restarted
   tasks:
+    - name: find hwmon/max power capability file for {{ card }}
+      find:
+        paths: /sys/class/drm/{{ card }}/device/hwmon
+        file_type: file
+        recurse: yes
+        use_regex: yes
+        patterns:
+          - '^power1_cap_max$'
+      register: hwmon
+    - name: print hwmon
+      debug:
+        msg: "{{ hwmon }}"
+    - name: get max power capability for {{ card }}
+      slurp:
+        src: "{{ hwmon.files.0.path }}"
+      register: power_max
     - name: ensure tuned is installed
       package:
         name: tuned
