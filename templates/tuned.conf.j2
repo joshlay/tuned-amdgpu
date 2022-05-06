@@ -5,7 +5,8 @@ summary={{ item.1 }} + TCP/RAID tweaks + AMDGPU pp_power_profile_mode = {{ item.
 [sysfs]
 /sys/class/drm/{{ card }}/device/power_dpm_force_performance_level = manual
 /sys/class/drm/{{ card }}/device/pp_power_profile_mode = {{ item.0.value }}
-/sys/class/drm/{{ card }}/device/hwmon/hwmon9/power1_cap = {{ power_max['content'] | b64decode }}
+# limit to {{ power_max_multi * 100.0 |int }}% of the max power cap, nearest (higher) whole number
+/sys/class/drm/{{ card }}/device/hwmon/hwmon9/power1_cap = {{ power_cap }}
 
 [sysctl]
 net.core.default_qdisc=fq
