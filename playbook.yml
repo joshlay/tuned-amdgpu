@@ -2,10 +2,12 @@
 - hosts: localhost
   become: yes
   vars:
-    power_max_multi: 0.90 # should not exceed 1.0, must be a float. note: driver seems to do its own rounding
+    power_max_multi: 1.0 # should not exceed 1.0, must be a float. note: driver seems to do its own rounding
     power_max: "{{ power_max_b64['content'] | b64decode }}"
     power_cap_float: "{{ power_max |float * power_max_multi }}"
+    power_cap_half_float: "{{ power_max |float * 0.5 }}"
     power_cap: "{{ power_cap_float |int }}"
+    power_cap_half: "{{ power_cap_half_float |int }}" # used to limit GPU power to 50% on 'low' perf modes
     card: card0 # default to card0
     base_profiles: # standard tuned profiles available on Fedora, should dynamically discover?
       - balanced
@@ -17,12 +19,12 @@
       - virtual-host
     amdgpu_profiles: # statically defined mapping of the contents in /sys/class/drm/{{ card }}/device/pp_power_profile_mode
 #      - { name: 'bootup_default', value: 0 }
-#      - { name: '3D_fullscreen', value: 1 }
+      - { name: '3D', value: 1 }
       - { name: 'powersaving', value: 2 }
       - { name: 'video', value: 3 }
       - { name: 'VR', value: 4 }
 #      - { name: 'compute', value: 5 }
-#      - { name: 'custom', value: 6 }
+      - { name: 'custom', value: 6 }
   handlers:
     - name: restart tuned
       ansible.builtin.service:

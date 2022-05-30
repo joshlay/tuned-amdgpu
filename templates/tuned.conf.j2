@@ -3,18 +3,31 @@ include={{ item.1 }}
 summary={{ item.1 }} + TCP/RAID tweaks + AMDGPU pp_power_profile_mode = {{ item.0.value }} ({{ item.0.name }})
 
 [sysfs]
-/sys/class/drm/{{ card }}/device/power_dpm_force_performance_level = manual
 /sys/class/drm/{{ card }}/device/pp_power_profile_mode = {{ item.0.value }}
-# limit to {{ power_max_multi * 100.0 |int }}% of the max power capability
+{% if 'VR' in item.0.name or '3D' in item.0.name or 'compute' in item.0.name or 'custom' in item.0.name %}
+{# TODO: if 'custom' profile: #}
+{#         set 'power_dpm_force_performance_level' to manual   #}
+{#         set individual clocks (eg: pp_dpm_mclk/pp_dpm_sclk/pp_dpm_pcie) #}
+{#         with user-provided values for those clocks #}
+# configure GPU power/clock characteristics
+# ref: https://docs.kernel.org/gpu/amdgpu/thermal.html
+/sys/class/drm/{{ card }}/device/power_dpm_force_performance_level = high
+# limit perf profiles to {{ power_max_multi * 100.0 |int }}% of the max power capability
 /sys/class/drm/{{ card }}/device/hwmon/hwmon9/power1_cap = {{ power_cap }}
+{% else %}
+# choose power saving dpm clock options
+/sys/class/drm/{{ card }}/device/power_dpm_force_performance_level = low
+# limit lower power modes to 50% of the max power capability
+/sys/class/drm/{{ card }}/device/hwmon/hwmon9/power1_cap = {{ power_cap_half }}
+{% endif %}
 
 [sysctl]
 net.core.default_qdisc=fq
-net.ipv4.tcp_congestion_control=bbr
+# 'bbr2' requires a [modified] supporting kernel - stock Fedora kernels do *not* support it (currently)
+#    eg: 'kernel-xanmode-edge' from COPR 'rmnscnce/kernel-xanmod'
+net.ipv4.tcp_congestion_control=bbr2
 net.core.rmem_max=33554432
 net.core.wmem_max=33554432
-{# net.core.rmem_max=4194304 #}
-{# net.core.wmem_max=1048576 #}
 dev.raid.speed_limit_min=600000
 dev.raid.speed_limit_max=9000000
 # allow some games to run (eg: DayZ)
