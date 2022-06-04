@@ -2,25 +2,6 @@
 include={{ item.1 }}
 summary={{ item.1 }} + TCP/RAID tweaks + AMDGPU pp_power_profile_mode = {{ item.0.value }} ({{ item.0.name }})
 
-[sysfs]
-/sys/class/drm/{{ card }}/device/pp_power_profile_mode = {{ item.0.value }}
-{% if 'VR' in item.0.name or '3D' in item.0.name or 'compute' in item.0.name or 'custom' in item.0.name %}
-{# TODO: if 'custom' profile: #}
-{#         set 'power_dpm_force_performance_level' to manual   #}
-{#         set individual clocks (eg: pp_dpm_mclk/pp_dpm_sclk/pp_dpm_pcie) #}
-{#         with user-provided values for those clocks #}
-# configure GPU power/clock characteristics
-# ref: https://docs.kernel.org/gpu/amdgpu/thermal.html
-/sys/class/drm/{{ card }}/device/power_dpm_force_performance_level = high
-# limit perf profiles to {{ power_max_multi * 100.0 |int }}% of the max power capability
-/sys/class/drm/{{ card }}/device/hwmon/hwmon9/power1_cap = {{ power_cap }}
-{% else %}
-# choose power saving dpm clock options
-/sys/class/drm/{{ card }}/device/power_dpm_force_performance_level = low
-# limit lower power modes to 50% of the max power capability
-/sys/class/drm/{{ card }}/device/hwmon/hwmon9/power1_cap = {{ power_cap_half }}
-{% endif %}
-
 [sysctl]
 net.core.default_qdisc=fq
 # 'bbr2' requires a [modified] supporting kernel - stock Fedora kernels do *not* support it (currently)
@@ -32,3 +13,31 @@ dev.raid.speed_limit_min=600000
 dev.raid.speed_limit_max=9000000
 # allow some games to run (eg: DayZ)
 vm.max_map_count=1048576
+
+{% if 'default' in item.0.name %}
+# reference/execute AMDGPU clock control *reset* script
+[gpuresetscript]
+type=script
+script=${i:PROFILE_DIR}/amdgpu-clock-reset.sh
+
+[sysfs]
+# configure GPU power/clock characteristics
+# ref: https://docs.kernel.org/gpu/amdgpu/thermal.html
+/sys/class/drm/{{ card }}/device/pp_power_profile_mode = {{ item.0.value }}
+/sys/class/drm/{{ card }}/device/power_dpm_force_performance_level = auto
+# give default profile {{ power_max_multi * 50.0 |int }}% (max) power capability
+/sys/class/drm/{{ card }}/device/hwmon/hwmon9/power1_cap = {{ power_cap_half }}
+{% endif %}
+{% if 'custom' in item.0.name %}
+[sysfs]
+# configure GPU power/clock characteristics
+# ref: https://docs.kernel.org/gpu/amdgpu/thermal.html
+/sys/class/drm/{{ card }}/device/pp_power_profile_mode = {{ item.0.value }}
+# give this custom oriented profile {{ power_max_multi * 100.0 |int }}% of the power capability
+/sys/class/drm/{{ card }}/device/hwmon/hwmon9/power1_cap = {{ power_cap }}
+
+# reference/execute AMDGPU clock control script
+[gpuclockscript]
+type=script
+script=${i:PROFILE_DIR}/amdgpu-clock.sh
+{% endif %}

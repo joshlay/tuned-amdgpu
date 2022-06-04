@@ -8,9 +8,14 @@
     power_cap_half_float: "{{ power_max |float * 0.5 }}"
     power_cap: "{{ power_cap_float |int }}"
     power_cap_half: "{{ power_cap_half_float |int }}" # used to limit GPU power to 50% on 'low' perf modes
+    gpu_clock_min: "2300" # minimum GPU clock (in 3D) - defaults 500Mhz
+    gpu_clock_max: "2600" # maximum GPU clock (also 3D) - range allows up to 3000Mhz.  default 2529
+    gpumem_clock_max: "1075" # maximum GPU memory clock - default 1000Mhz, range allows 1075Mhz
+    # note: (all clocks based on my non-reference 6900XT)
+    # consult '/sys/class/drm/{{ card }}/device/pp_od_clk_voltage'
     card: card0 # default to card0
-    base_profiles: # standard tuned profiles available on Fedora, should dynamically discover?
-      - balanced
+    base_profiles: # list of source tuned profiles available on Fedora (TODO: should dynamically discover?)
+      - balanced   # these are further modified with secondary (templated) profiles, see 'templates/tuned.conf.j2'
       - desktop
       - latency-performance
       - network-latency
@@ -18,12 +23,7 @@
       - powersave
       - virtual-host
     amdgpu_profiles: # statically defined mapping of the contents in /sys/class/drm/{{ card }}/device/pp_power_profile_mode
-#      - { name: 'bootup_default', value: 0 }
-      - { name: '3D', value: 1 }
-      - { name: 'powersaving', value: 2 }
-      - { name: 'video', value: 3 }
-      - { name: 'VR', value: 4 }
-#      - { name: 'compute', value: 5 }
+      - { name: 'default', value: 0 }
       - { name: 'custom', value: 6 }
   handlers:
     - name: restart tuned
@@ -56,6 +56,28 @@
       with_nested:
         - "{{ amdgpu_profiles }}"
         - "{{ base_profiles }}"
+    - name: template AMDGPU clock control scripts (tuned profile dependency)
+      template:
+        src: templates/amdgpu-clock.sh.j2
+        dest: /etc/tuned/{{ item.1 }}-amdgpu-{{ item.0 }}/amdgpu-clock.sh
+        owner: root
+        group: root
+        mode: "0755"
+      with_nested:
+        - 'custom'
+        - "{{ base_profiles }}"
+      notify: restart tuned
+    - name: template AMDGPU clock control *reset* script (tuned profile dependency)
+      template:
+        src: templates/amdgpu-clock-reset.sh.j2
+        dest: /etc/tuned/{{ item.1 }}-amdgpu-{{ item.0 }}/amdgpu-clock-reset.sh
+        owner: root
+        group: root
+        mode: "0755"
+      with_nested:
+        - 'default'
+        - "{{ base_profiles }}"
+      notify: restart tuned
     - name: template custom tuned profiles
       template:
         src: templates/tuned.conf.j2
