@@ -6,14 +6,8 @@
     # 0.5 = 50%
     # 1.0 = 100% (of card power capability, not stock limits)
     # should not exceed 1.0, must be a float.  driver will do some rounding/stepping
-    power_max_custom_multi: 1.0
-    power_max_default_multi: 0.75
-    power_max: "{{ power_max_b64['content'] | b64decode }}"
-    power_max_float: "{{ power_max_b64['content'] | b64decode |float }}"
-    power_cap_custom_float: "{{ power_max |float * power_max_custom_multi }}"
-    power_cap_default_float: "{{ power_max |float * power_max_default_multi }}"
-    power_cap_custom: "{{ power_cap_custom_float |int }}"
-    power_cap_default: "{{ power_cap_default_float |int }}" # used to limit GPU power to some lower percentage on 'low' perf modes
+    power_max_custom_multi: 1.0 # used to boost GPU power to board capability for some overclocking
+    power_max_default_multi: 0.75 # used to limit GPU power to some lower percentage on default perf mode
     gpu_clock_min: "2200" # minimum GPU clock (in 3D) - defaults 500Mhz
     gpu_clock_max: "2575" # maximum GPU clock (also 3D) - range allows up to 3000Mhz.  default 2529
     gpumem_clock_max: "1075" # maximum GPU memory clock - default 1000Mhz, range allows 1075Mhz

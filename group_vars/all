@@ -1,0 +1,17 @@
+---
+# misc default vars handling unit conversion RE: power capabilities/limits
+#
+# the discovered board limit for power capability
+power_max: "{{ power_max_b64['content'] | b64decode }}"
+
+# convert discovered board power limit (int) to a float 
+# for some math in the tuned config template
+power_max_float: "{{ power_max_b64['content'] | b64decode |float }}"
+
+# determine the microWatt limits based on the provided multipliers
+power_cap_custom_float: "{{ power_max |float * power_max_custom_multi }}"
+power_cap_default_float: "{{ power_max |float * power_max_default_multi }}"
+
+# convert the microWatt limits to ints for some math - also in the tuned config template
+power_cap_custom: "{{ power_cap_custom_float |int }}"
+power_cap_default: "{{ power_cap_default_float |int }}"
