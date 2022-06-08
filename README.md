@@ -3,8 +3,9 @@
 hacky solution to integrate AMDGPU power profile control in `tuned` with Ansible
 
 ## Notable variables
- - `power_max_custom_multi`: Accepts a float from 0.0 to 1.0.  Allows max GPU power consumption to be controlled in the generated `custom` GPU profile.  Provided: `1.0` for 100% board power capability.
- - `power_max_custom_multi`: Accepts a float from 0.0 to 1.0.  Allows max GPU power consumption to be controlled in the generated `default` GPU profile.  Provided: `0.75` for 75% board power capability.
+ - Power control: (float) multipliers to determine power _limits_ from board power _capability_
+   - `power_max_default_multi`: Controls power for the generated `default` GPU profile.  Provided: `0.75` for 75% board power capability.
+   - `power_max_custom_multi`: Controls power for the generated `custom` GPU profile.  Provided: `1.0` for 100% board power capability.
  - `card`: Sets the `card#` to use in the qualified `sysfs` path `/sys/class/drm/{{ card }}/device/pp_power_profile_mode`.  Default: `card0`
  - `base_profiles`: List of base tuned profiles to clone in the new AMDGPU profiles.  Defaults (based on `Fedora`):
    - `balanced`
