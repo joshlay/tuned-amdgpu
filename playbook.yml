@@ -31,6 +31,25 @@
         name: tuned
         state: restarted
   tasks:
+    - name: Gather package facts
+      ansible.builtin.package_facts:
+        manager: auto
+    - name: replace 'power-profiles-daemon' with 'tuned' on Fedora 35+
+      dnf: # use with_items since 'dnf' module in Ansible doesn't support 'swap'
+        name: "{{ item.name }}"
+        state: "{{ item.state }}"
+      with_items:
+        - {name: 'power-profiles-daemon', state: 'absent'}
+        - {name: 'tuned', state: 'present'}
+      when: ('power-profiles-daemon' in ansible_facts.packages) or (('tuned' not in ansible_facts.packages) and ((ansible_distribution == 'Fedora') and (ansible_distribution_major_version|int > 35)))
+      register: fed_ppdtuned_swap
+      # 'power-profiles-daemon' was added/conflicts with 'tuned' since F35
+      # otherwise, ensure the 'tuned' package is installed
+    - name: install tuned
+      package:
+        name: tuned
+        state: present
+      when: (fed_ppdtuned_swap is not defined) or ('tuned' not in ansible_facts.packages)
     - name: find hwmon/max power capability file for {{ card }}
       find:
         paths: /sys/class/drm/{{ card }}/device/hwmon
@@ -44,10 +63,6 @@
       slurp:
         src: "{{ hwmon.files.0.path }}"
       register: power_max_b64
-    - name: ensure tuned is installed
-      package:
-        name: tuned
-        state: present
     - name: create custom profile directories
       file:
         state: directory
