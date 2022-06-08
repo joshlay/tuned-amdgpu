@@ -25,16 +25,19 @@ script=${i:PROFILE_DIR}/amdgpu-clock-reset.sh
 # ref: https://docs.kernel.org/gpu/amdgpu/thermal.html
 /sys/class/drm/{{ card }}/device/pp_power_profile_mode = {{ item.0.value }}
 /sys/class/drm/{{ card }}/device/power_dpm_force_performance_level = auto
-# give default profile {{ power_max_multi * 50.0 |int }}% (max) power capability
-/sys/class/drm/{{ card }}/device/hwmon/hwmon9/power1_cap = {{ power_cap_half }}
+{# # give default profile {{ power_max_default_multi * 100.0 |int }}% of the max power capability -- {{ power_max_float * power_max_default_multi / 1000000.0 |int }} Watts of {{ power_max / 1000000 |int }} total #}
+# give default profile {{ power_max_default_multi * 100.0 |int }}% of the max power capability
+# {{ power_cap_default|int/1000000 }} Watts of {{ power_max|int/1000000 }} total
+/sys/class/drm/{{ card }}/device/hwmon/hwmon9/power1_cap = {{ power_cap_default }}
 {% endif %}
 {% if 'custom' in item.0.name %}
 [sysfs]
 # configure GPU power/clock characteristics
 # ref: https://docs.kernel.org/gpu/amdgpu/thermal.html
 /sys/class/drm/{{ card }}/device/pp_power_profile_mode = {{ item.0.value }}
-# give this custom oriented profile {{ power_max_multi * 100.0 |int }}% of the power capability
-/sys/class/drm/{{ card }}/device/hwmon/hwmon9/power1_cap = {{ power_cap }}
+# give this custom oriented profile {{ power_max_custom_multi * 100.0 |int }}% of the max power capability
+# {{ power_cap_custom|int/1000000 }} Watts of {{ power_max|int/1000000 }} total
+/sys/class/drm/{{ card }}/device/hwmon/hwmon9/power1_cap = {{ power_cap_custom }}
 
 # reference/execute AMDGPU clock control script
 [gpuclockscript]

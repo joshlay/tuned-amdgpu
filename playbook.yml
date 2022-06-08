@@ -2,14 +2,20 @@
 - hosts: localhost
   become: yes
   vars:
-    power_max_multi: 1.0 # should not exceed 1.0, must be a float. note: driver seems to do its own rounding
+    # the multipliers against power capability to determine power limits for the non-OC (default)/OC (custom) profiles
+    # 0.5 = 50%
+    # 1.0 = 100% (of card power capability, not stock limits)
+    # should not exceed 1.0, must be a float.  driver will do some rounding/stepping
+    power_max_custom_multi: 1.0
+    power_max_default_multi: 0.75
     power_max: "{{ power_max_b64['content'] | b64decode }}"
-    power_cap_float: "{{ power_max |float * power_max_multi }}"
-    power_cap_half_float: "{{ power_max |float * 0.5 }}"
-    power_cap: "{{ power_cap_float |int }}"
-    power_cap_half: "{{ power_cap_half_float |int }}" # used to limit GPU power to 50% on 'low' perf modes
-    gpu_clock_min: "2300" # minimum GPU clock (in 3D) - defaults 500Mhz
-    gpu_clock_max: "2600" # maximum GPU clock (also 3D) - range allows up to 3000Mhz.  default 2529
+    power_max_float: "{{ power_max_b64['content'] | b64decode |float }}"
+    power_cap_custom_float: "{{ power_max |float * power_max_custom_multi }}"
+    power_cap_default_float: "{{ power_max |float * power_max_default_multi }}"
+    power_cap_custom: "{{ power_cap_custom_float |int }}"
+    power_cap_default: "{{ power_cap_default_float |int }}" # used to limit GPU power to some lower percentage on 'low' perf modes
+    gpu_clock_min: "2200" # minimum GPU clock (in 3D) - defaults 500Mhz
+    gpu_clock_max: "2575" # maximum GPU clock (also 3D) - range allows up to 3000Mhz.  default 2529
     gpumem_clock_max: "1075" # maximum GPU memory clock - default 1000Mhz, range allows 1075Mhz
     # note: (all clocks based on my non-reference 6900XT)
     # consult '/sys/class/drm/{{ card }}/device/pp_od_clk_voltage'
