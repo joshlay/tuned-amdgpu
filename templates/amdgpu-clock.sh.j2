@@ -1,18 +1,45 @@
 #!/bin/bash
 # script for tuned AMDGPU clock control
-# clocks in 3D usage are dynamic based on need/usage
-#
-# this sets the minimums / maximums
+# configures GPU power/clock characteristics
+# clocks/power in 3D are dynamic based on need/usage
 #
 # rendered by Ansible with environment-appropriate values:
 #   card #, eg: card0
-#   min/max GPU clocks
+#   path to discovered sysfs device files (power/clock/voltage control)
+#
+# this sets the minimums / maximums for a specific generation of GPU
+# settings may need adjusted
+#
+# AMDGPU driver/sysfs references:
+#   https://01.org/linuxgraphics/gfx-docs/drm/gpu/amdgpu.html
+#   https://docs.kernel.org/gpu/amdgpu/thermal.html
 
-# send a reset for a clean slate
-# echo 'r' | tee /sys/class/drm/{{ card }}/device/pp_od_clk_voltage
+{% if 'default' in item.0.name %}
+# set power state transition heuristics to default
+echo '{{ item.0.value }}' | tee /sys/class/drm/{{ card }}/device/pp_power_profile_mode
 
+# set control mode back to auto
+# attempts to dynamically set optimal power profile for conditions
+echo 'auto' | tee /sys/class/drm/{{ card }}/device/power_dpm_force_performance_level
+
+# reset any existing profile clock changes
+echo 'r' | tee /sys/class/drm/{{ card }}/device/pp_od_clk_voltage
+
+# give default profile {{ power_max_default_multi * 100.0 |int }}% of the max power capability
+# {{ power_cap_default|int/1000000 }} Watts of {{ power_max|int/1000000 }} total
+echo '{{ power_cap_default }}' | tee {{ powercap_set.files.0.path }}
+{% elif 'custom' in item.0.name %}
 # set manual control mode
+# allow control via 'pp_dpm_mclk', 'pp_dpm_sclk', 'pp_dpm_pcie', and 'pp_power_profile_mode' files
 echo 'manual' | tee /sys/class/drm/{{ card }}/device/power_dpm_force_performance_level
+
+# set power state transition heuristics to custom/manual
+# looked up from amdgpu_profiles variable using 'with_nested' loop in task
+echo '{{ item.0.value }}' | tee /sys/class/drm/{{ card }}/device/pp_power_profile_mode
+
+# give this profile {{ power_max_custom_multi * 100.0 |int }}% of the max power capability
+# {{ power_cap_custom|int/1000000 }} Watts of {{ power_max|int/1000000 }} total
+echo '{{ power_cap_custom }}' | tee {{ powercap_set.files.0.path }}
 
 # set the minimum GPU clock
 echo 's 0 {{ gpu_clock_min }}' | tee /sys/class/drm/{{ card }}/device/pp_od_clk_voltage
@@ -22,8 +49,8 @@ echo 's 1 {{ gpu_clock_max }}' | tee /sys/class/drm/{{ card }}/device/pp_od_clk_
 
 # set the maximum GPU *memory* clock
 echo 'm 1 {{ gpumem_clock_max }}' | tee /sys/class/drm/{{ card }}/device/pp_od_clk_voltage
-
 {% if gpu_mv_offset is defined %}
+
 # offset GPU voltage {{ gpu_mv_offset }}mV
 echo 'vo {{ gpu_mv_offset }}' | tee /sys/class/drm/{{ card }}/device/pp_od_clk_voltage
 {% endif %}
@@ -33,3 +60,4 @@ echo 'c' | tee /sys/class/drm/{{ card }}/device/pp_od_clk_voltage
 
 # force GPU memory into highest profile
 echo '3' | tee /sys/class/drm/{{ card }}/device/pp_dpm_mclk
+{% endif %}
