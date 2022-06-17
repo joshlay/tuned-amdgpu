@@ -6,15 +6,24 @@
     # 0.5 = 50%
     # 1.0 = 100% (of card power capability, not stock limits)
     # should not exceed 1.0, must be a float.  driver will do some rounding/stepping
-    power_max_custom_multi: 1.0 # used to boost GPU power to board capability for some overclocking
+    power_max_custom_multi: 1.0   # used to control the effective power limit in the 'custom' AMDGPU tuned profile
     power_max_default_multi: 0.75 # used to limit GPU power to some lower percentage on default perf mode
-    gpu_clock_min: "2200" # minimum GPU clock (in 3D) - defaults 500Mhz
-    gpu_clock_max: "2575" # maximum GPU clock (also 3D) - range allows up to 3000Mhz.  default 2529
-    gpumem_clock_max: "1075" # maximum GPU memory clock - default 1000Mhz, range allows 1075Mhz
-    gpu_mv_offset: "+100" # optional, applies offset to GPU voltage, eg: +100 = boost 100mV or 0.1V. for the 'custom' GPU profile.
-    # note: (all clocks based on my non-reference 6900XT)
-    # consult '/sys/class/drm/{{ card }}/device/pp_od_clk_voltage'
-    card: card0 # default to card0
+    # minimum/maximum GPU clocks using 'powerplay'.
+    # effective clocks are dynamically adjusted by the driver in this range - based on utilization
+    # can find baseline values in the '/sys/class/drm/{{ card }}/device/pp_od_clk_voltage' file
+    #   OD_RANGE indicates acceptable value ranges for SCLK (core) and MCLK (memory)
+    #   Under 'OD_SCLK' and 'OD_MCLK' you will see 0/1.  These are the minimum/maximum values for the respective component.
+    gpu_clock_min: "2300"
+    gpu_clock_max: "2600"
+    # memory clocks are static, we only set a 'max' - high-refresh rate display quirk
+    # this allows the memory clock to be adjusted
+    gpumem_clock_max: "1075"
+    # optional, applies offset to GPU voltage, eg: '+100' = to boost GPU core voltage 100mV or 0.1V. for the 'custom' GPU profile.
+    gpu_mv_offset: "+50"
+    # the card for 'tuned' to control
+    # this is *usually* 'card0', but may differ.
+    # check '/dev/dri/card*'
+    card: 'card0'  # default to card0
     base_profiles: # list of source tuned profiles available on Fedora (TODO: should dynamically discover?)
       - balanced   # these are further modified with secondary (templated) profiles, see 'templates/tuned.conf.j2'
       - desktop
