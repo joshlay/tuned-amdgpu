@@ -58,6 +58,9 @@ echo 'vo {{ gpu_mv_offset }}' | tee /sys/class/drm/{{ card }}/device/pp_od_clk_v
 # commit the changes
 echo 'c' | tee /sys/class/drm/{{ card }}/device/pp_od_clk_voltage
 
+# force GPU core/shader into the highest profile: {{ gpu_clock_max }}Mhz
+echo '1' | tee /sys/class/drm/{{ card }}/device/pp_dpm_sclk
+
 # force GPU memory into highest profile
 echo '3' | tee /sys/class/drm/{{ card }}/device/pp_dpm_mclk
 {% endif %}
