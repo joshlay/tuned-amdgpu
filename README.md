@@ -12,9 +12,9 @@ An example of the output/provided profiles follow
 
 | Output profile | Description |
 |---|---|
-| `balanced-amdgpu-default` | Includes the existing `balanced` tuned profile.  Only adjusts the GPU power limit (typically lower), clocks/voltage curve remain the default. |
-| `desktop-amdgpu-VR` | Includes the existing `desktop` tuned profile.  Adjusts the GPU power limit, clocks, and the voltage curve -- using the predefined `VR` profile in the driver |
-| `latency-performance-amdgpu-custom` | Includes the existing `latency-performance` tuned profile.  Adjusts the GPU power limit, clocks, and the voltage curve -- using the `custom` profile in the driver.  This opens up further tweaking through the driver (currently manual).  see: [pp-dpm](https://docs.kernel.org/gpu/amdgpu/thermal.html#pp-dpm) |
+| `balanced-amdgpu-default` | Includes the (assumed) existing `balanced` tuned profile.<br/>Only adjusts the GPU power limit (typically lower).  Clocks/voltage curve remain the default. |
+| `desktop-amdgpu-VR` | Includes the (assumed) existing `desktop` tuned profile.<br/>Adjusts the GPU power limit, clocks, _and_ the voltage curve.<br/>Uses the predefined `VR` profile in the driver.  See `/sys/class/drm/card*/device/pp_power_profile_mode` |
+| `latency-performance-amdgpu-custom` | Includes the existing `latency-performance` tuned profile.<br/>Like the existing GPU profiles (eg: _VR)), this also adjusts the GPU power limit, clocks, _and_ the voltage curve.<br/>This differs by using the `custom` profile in the driver.  This opens up further tweaking of the power/clock heuristics through the driver (currently manual).  see: [pp-dpm](https://docs.kernel.org/gpu/amdgpu/thermal.html#pp-dpm) |
 
 **Note**: This is non-exhaustive, see the variables `base_profiles` and `amdgpu_profiles` below for the (default) sources of the merged profile mapping
 
