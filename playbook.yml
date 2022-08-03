@@ -6,35 +6,48 @@
     # 0.5 = 50%
     # 1.0 = 100% (of card power capability, not stock limits)
     # should not exceed 1.0, must be a float.  driver will do some rounding/stepping
-    power_max_custom_multi: 1.0   # used to control the effective power limit in the 'custom' AMDGPU tuned profile
-    power_max_default_multi: 0.75 # used to limit GPU power to some lower percentage on default perf mode
-    # minimum/maximum GPU clocks using 'powerplay'.
+    # default is ~87% (281/323) on my 6900XT.  check '/sys/class/drm/card*/device/hwmon/hwmon*/power1_cap_default'
+    power_max_custom_multi: 0.928793 # calculated to ~300W. used to control the effective power limit in the non-default AMDGPU tuned profiles
+    power_max_default_multi: 0.82    # (typically) used to limit GPU power to some lower percentage on default perf mode/profile
+    #
+    # minimum/maximum GPU clocks using 'powerplay'
+    # these do not apply to the resulting 'amdgpu-default' tuned profile
+    # only the others (eg: 'VR'/'custom') under amdgpu_profiles (below)
     # effective clocks are dynamically adjusted by the driver in this range - based on utilization
     # can find baseline values in the '/sys/class/drm/{{ card }}/device/pp_od_clk_voltage' file
     #   OD_RANGE indicates acceptable value ranges for SCLK (core) and MCLK (memory)
     #   Under 'OD_SCLK' and 'OD_MCLK' you will see 0/1.  These are the minimum/maximum values for the respective component.
-    gpu_clock_min: "2300"
-    gpu_clock_max: "2600"
+    gpu_clock_min: "2000"
+    gpu_clock_max: "2615"
+    #
     # memory clocks are static, we only set a 'max' - high-refresh rate display quirk
     # this allows the memory clock to be adjusted
     gpumem_clock_max: "1075"
+    #
     # optional, applies offset to GPU voltage, eg: '+100' = to boost GPU core voltage 100mV or 0.1V. for the 'custom' GPU profile.
-    gpu_mv_offset: "+50"
+    gpu_mv_offset: "-25"
+    #
     # the card for 'tuned' to control
     # this is *usually* 'card0', but may differ.
     # check '/dev/dri/card*'
     card: 'card0'  # default to card0
-    base_profiles: # list of source tuned profiles available on Fedora (TODO: should dynamically discover?)
-      - balanced   # these are further modified with secondary (templated) profiles, see 'templates/tuned.conf.j2'
+    # list of source tuned profiles available on Fedora (TODO: should dynamically discover)
+    # further modified with AMD GPU power/clock parameters, creating new profiles. eg: 'balanced-amdgpu-VR'
+    base_profiles:
+      - balanced
       - desktop
       - latency-performance
       - network-latency
       - network-throughput
       - powersave
       - virtual-host
-    amdgpu_profiles: # statically defined mapping of the contents in /sys/class/drm/{{ card }}/device/pp_power_profile_mode
-      - { name: 'default', value: 0 }
-      - { name: 'custom', value: 6 }
+    amdgpu_profiles: # statically defined mapping of the contents in /sys/class/drm/card*/device/pp_power_profile_mode
+      default:       # more may be added, but do not remove default/custom. new profiles require a script template, see 'templates'
+        pwrmode: 0
+      VR:
+        pwrmode: 4
+      custom:
+        pwrmode: 6
   handlers:
     - name: restart tuned
       ansible.builtin.service:
@@ -85,30 +98,34 @@
     - name: create custom profile directories
       file:
         state: directory
-        path: /etc/tuned/{{ item.1 }}-amdgpu-{{ item.0.name }}
+        path: /etc/tuned/{{ item.1 }}-amdgpu-{{ item.0.key }}
         mode: "0755"
       with_nested:
-        - "{{ amdgpu_profiles }}"
+        - "{{ lookup('dict', amdgpu_profiles) }}"
         - "{{ base_profiles }}"
-    - name: template AMDGPU clock control scripts (default/GPU profile dependency)
+    - name: template AMDGPU control/reset scripts
       template:
         src: templates/amdgpu-clock.sh.j2
-        dest: /etc/tuned/{{ item.1 }}-amdgpu-{{ item.0.name }}/amdgpu-clock.sh
+        dest: /etc/tuned/{{ item.1 }}-amdgpu-{{ item.0.key }}/amdgpu-clock.sh
         owner: root
         group: root
         mode: "0755"
       with_nested:
-        - "{{ amdgpu_profiles }}"
+        - "{{ lookup('dict', amdgpu_profiles) }}"
         - "{{ base_profiles }}"
       notify: restart tuned
     - name: template custom tuned profiles
       template:
         src: templates/tuned.conf.j2
-        dest: /etc/tuned/{{ item.1 }}-amdgpu-{{ item.0.name }}/tuned.conf
+        dest: /etc/tuned/{{ item.1 }}-amdgpu-{{ item.0.key }}/tuned.conf
         owner: root
         group: root
         mode: "0644"
       with_nested:
-        - "{{ amdgpu_profiles }}"
+        - "{{ lookup('dict', amdgpu_profiles) }}"
         - "{{ base_profiles }}"
       notify: restart tuned
+    - name: ensure tuned is enabled
+      service:
+        name: tuned
+        enabled: yes
