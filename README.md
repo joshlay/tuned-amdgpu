@@ -4,6 +4,8 @@ Hacky solution to integrate AMDGPU power profile control in `tuned` with Ansible
 
 Takes a list of existing `tuned` profiles and creates new ones based on them.  These new profiles include AMDGPU power/clock parameters
 
+_Warning_: Only tested with RX6000 series GPUs, Navi or older may not work properly.
+
 ## Profiles
 
 An example of the output/provided profiles follow
