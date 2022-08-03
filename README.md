@@ -11,10 +11,10 @@ _Warning_: Only tested with RX6000 series GPUs, Navi or older may not work prope
 An example of the output/provided profiles follow
 
 | Output profile | Description |
-|---|---|
-| `balanced-amdgpu-default` | Includes the (assumed) existing `balanced` tuned profile.<br/>Only adjusts the GPU power limit (typically lower).  Clocks/voltage curve remain the default. |
-| `desktop-amdgpu-VR` | Includes the (assumed) existing `desktop` tuned profile.<br/>Adjusts the GPU power limit, clocks, _and_ the voltage curve.<br/>Uses the predefined `VR` profile in the driver.  See `/sys/class/drm/card*/device/pp_power_profile_mode` |
-| `latency-performance-amdgpu-custom` | Includes the existing `latency-performance` tuned profile.<br/>Like the existing GPU profiles (eg: _VR)), this also adjusts the GPU power limit, clocks, _and_ the voltage curve.<br/>This differs by using the `custom` profile in the driver.  This opens up further tweaking of the power/clock heuristics through the driver (currently manual).  see: [pp-dpm](https://docs.kernel.org/gpu/amdgpu/thermal.html#pp-dpm) |
+|:---|---|
+| `balanced-amdgpu-default` | Includes the (assumed) existing `balanced` tuned profile.<br/><br/>Only adjusts the GPU power limit (typically lower).  Clocks/voltage curve remain the default. |
+| `desktop-amdgpu-VR` | Includes the (assumed) existing `desktop` tuned profile.<br/><br/>Adjusts the GPU power limit, clocks, _and_ the voltage curve.<br/><br/>Uses the predefined `VR` profile in the driver.  See `/sys/class/drm/card*/device/pp_power_profile_mode` |
+| `latency-performance-amdgpu-custom` | Includes the existing `latency-performance` tuned profile.<br/><br/>Like the existing GPU profiles (eg: _VR)), this also adjusts the GPU power limit, clocks, _and_ the voltage curve.<br/><br/>This differs by using the `custom` profile in the driver.  This opens up further tweaking of the power/clock heuristics through the driver (currently manual).  see: [pp-dpm](https://docs.kernel.org/gpu/amdgpu/thermal.html#pp-dpm) |
 
 **Note**: This is non-exhaustive, see the variables `base_profiles` and `amdgpu_profiles` below for the (default) sources of the merged profile mapping
 
@@ -32,11 +32,16 @@ An example of the output/provided profiles follow
    - `network-throughput`
    - `powersave`
    - `virtual-host`
-
-`amdgpu_profiles`: Mapping of AMDGPU power profiles (`name`/`value`) defined in the `sysfs` path above.  Varies, sample is with a 6900XT.  Defaults below
+   - `amdgpu_profiles`: Dictionary mapping the AMDGPU power profiles found in `/sys/class/drm/card*/device/pp_power_profile_mode`.
+       - Allows adjustment to the automatic power/clock handling in the GPU using either predefined profiles or `custom`
+       - More may be added, only three GPU power profiles are provided:
+           - default
+           - VR
+           - custom
+       - May vary by GPU/generation, sample (defaults, below) are from a 6900XT:
 ```
-amdgpu_profiles: # statically defined mapping of the contents in /sys/class/drm/card*/device/pp_power_profile_mode
-  default:       # more may be added, but do not remove default/custom. new profiles require a script template, see 'templates'
+amdgpu_profiles:
+  default:
     pwrmode: 0
   VR:
     pwrmode: 4
