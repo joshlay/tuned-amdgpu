@@ -1,36 +1,7 @@
 ---
 - hosts: localhost
-  become: yes
+  become: true
   vars:
-    # the multipliers against power capability to determine power limits for the non-OC (default)/OC (custom) profiles
-    # 0.5 = 50%
-    # 1.0 = 100% (of card power capability, not stock limits)
-    # should not exceed 1.0, must be a float.  driver will do some rounding/stepping
-    # default is ~87% (281/323) on my 6900XT.  check '/sys/class/drm/card*/device/hwmon/hwmon*/power1_cap_default'
-    power_max_custom_multi: 0.928793 # calculated to ~300W. used to control the effective power limit in the non-default AMDGPU tuned profiles
-    power_max_default_multi: 0.82    # (typically) used to limit GPU power to some lower percentage on default perf mode/profile
-    #
-    # minimum/maximum GPU clocks using 'powerplay'
-    # these do not apply to the resulting 'amdgpu-default' tuned profile
-    # only the others (eg: 'VR'/'custom') under amdgpu_profiles (below)
-    # effective clocks are dynamically adjusted by the driver in this range - based on utilization
-    # can find baseline values in the '/sys/class/drm/{{ card }}/device/pp_od_clk_voltage' file
-    #   OD_RANGE indicates acceptable value ranges for SCLK (core) and MCLK (memory)
-    #   Under 'OD_SCLK' and 'OD_MCLK' you will see 0/1.  These are the minimum/maximum values for the respective component.
-    gpu_clock_min: "2000"
-    gpu_clock_max: "2615"
-    #
-    # memory clocks are static, we only set a 'max' - high-refresh rate display quirk
-    # this allows the memory clock to be adjusted
-    gpumem_clock_max: "1075"
-    #
-    # optional, applies offset to GPU voltage, eg: '+100' = to boost GPU core voltage 100mV or 0.1V. for the 'custom' GPU profile.
-    gpu_mv_offset: "-25"
-    #
-    # the card for 'tuned' to control
-    # this is *usually* 'card0', but may differ.
-    # check '/dev/dri/card*'
-    card: 'card0'  # default to card0
     # list of source tuned profiles available on Fedora (TODO: should dynamically discover)
     # further modified with AMD GPU power/clock parameters, creating new profiles. eg: 'balanced-amdgpu-VR'
     base_profiles:
@@ -41,13 +12,6 @@
       - network-throughput
       - powersave
       - virtual-host
-    amdgpu_profiles: # statically defined mapping of the contents in /sys/class/drm/card*/device/pp_power_profile_mode
-      default:       # more may be added, but do not remove default/custom. new profiles require a script template, see 'templates'
-        pwrmode: 0
-      VR:
-        pwrmode: 4
-      custom:
-        pwrmode: 6
   handlers:
     - name: restart tuned
       ansible.builtin.service:
@@ -64,7 +28,10 @@
       with_items:
         - {name: 'power-profiles-daemon', state: 'absent'}
         - {name: 'tuned', state: 'present'}
-      when: ('power-profiles-daemon' in ansible_facts.packages) or (('tuned' not in ansible_facts.packages) and ((ansible_distribution == 'Fedora') and (ansible_distribution_major_version|int > 35)))
+      when:
+        - ('power-profiles-daemon' in ansible_facts.packages) or ('tuned' not in ansible_facts.packages)
+        - ansible_distribution == 'Fedora'
+        - ansible_distribution_major_version|int > 35
       register: fed_ppdtuned_swap
       # 'power-profiles-daemon' was added/conflicts with 'tuned' since F35
       # otherwise, ensure the 'tuned' package is installed
@@ -73,25 +40,31 @@
         name: tuned
         state: present
       when: (fed_ppdtuned_swap is not defined) or ('tuned' not in ansible_facts.packages)
-    - name: find hwmon/max power capability file for {{ card }}
+    - name: determine GPU device in drm subsystem
+      shell:
+        cmd: grep -ls ^connected /sys/class/drm/*/status | grep -o card[0-9] | sort | uniq | tail -1
+        executable: /bin/bash
+      changed_when: false
+      register: card
+    - name: find hwmon/max power capability file for {{ card.stdout }}
       find:
-        paths: /sys/class/drm/{{ card }}/device/hwmon
+        paths: /sys/class/drm/{{ card.stdout }}/device/hwmon
         file_type: file
-        recurse: yes
-        use_regex: yes
+        recurse: true
+        use_regex: true
         patterns:
           - '^power1_cap_max$'
       register: hwmon
-    - name: find hwmon/current power limit file for {{ card }}
+    - name: find hwmon/current power limit file for {{ card.stdout }}
       find:
-        paths: /sys/class/drm/{{ card }}/device/hwmon
+        paths: /sys/class/drm/{{ card.stdout }}/device/hwmon
         file_type: file
-        recurse: yes
-        use_regex: yes
+        recurse: true
+        use_regex: true
         patterns:
           - '^power1_cap$'
       register: powercap_set
-    - name: get max power capability for {{ card }}
+    - name: get max power capability for {{ card.stdout }}
       slurp:
         src: "{{ hwmon.files.0.path }}"
       register: power_max_b64
@@ -128,4 +101,4 @@
     - name: ensure tuned is enabled
       service:
         name: tuned
-        enabled: yes
+        enabled: true

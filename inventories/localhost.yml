@@ -1,0 +1,5 @@
+---
+lab:
+  hosts:
+    localhost:
+      ansible_connection: local

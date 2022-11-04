@@ -1,0 +1,52 @@
+---
+# statically defined mapping of the contents in /sys/class/drm/card*/device/pp_power_profile_mode
+# more may be added, but do not remove default/custom. new profiles require a script template, see 'templates'
+amdgpu_profiles:
+  default:    
+    pwrmode: 0
+  3D:
+    pwrmode: 1
+  VR:
+    pwrmode: 4
+  custom:
+    pwrmode: 6
+
+# the multipliers against power capability to determine power limits for the non-OC (default)/OC (custom) profiles
+# 0.5 = 50%, 1.0 = 100% (of card power capability, not stock limits)
+#
+# should not exceed 1.0, must be a float.  driver will do some rounding/stepping
+#
+# see 'power_max multi tab calculator.ods' for a calculator/spreadsheet
+#   adjust cell F14 (board max power) and the 'effective watts' column to update calculations
+#   microWatt board power capability can be discovered like so: 'cat /sys/class/drm/card*/device/hwmon/hwmon*/power1_cap_max'
+#    power_max_default_multi: 0.75 # 242.25W, slightly lower than true default
+# power for the default profile
+power_max_default_multi: 0.789473684210526  # 255W - default
+#    power_max_default_multi: 0.820433436532508 # 265W
+#    power_max_default_multi: 0.851393188854489 # 275W
+#    power_max_default_multi: 0.869969040247678 # 281W
+
+# power for the custom profile
+#power_max_custom_multi: 0.789473684210526 # 255W - default
+power_max_custom_multi: 0.869969040247678 # 281W
+# alt default power limits
+#    power_max_default_multi: 0.696594427244582 # 225W
+#    power_max_default_multi: 0.869969040247678 # 281W
+#
+# minimum/maximum GPU clocks using 'powerplay' below
+# these do *not* apply to the resulting 'amdgpu-default' tuned profile
+#
+# only the others (eg: 'VR'/'custom') under amdgpu_profiles (below)
+# effective clocks are dynamically adjusted by the driver in this range - based on utilization
+# can find baseline values in the '/sys/class/drm/{{ card }}/device/pp_od_clk_voltage' file
+#   OD_RANGE indicates acceptable value ranges for SCLK (core) and MCLK (memory)
+#   Under 'OD_SCLK' and 'OD_MCLK' you will see 0/1.  These are the minimum/maximum values for the respective component.
+gpu_clock_min: "500" # default 500
+gpu_clock_max: "2500" # default 2529
+#
+# memory clocks are static, we only set a 'max' - high-refresh rate display quirk
+# this allows the memory clock to be adjusted
+gpumem_clock_max: "1050"
+#
+# optional, applies offset to GPU voltage, eg: '+100' = to boost GPU core voltage 100mV or 0.1V. for the 'custom' GPU profile.
+#gpu_mv_offset: "+50"
