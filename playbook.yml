@@ -42,7 +42,7 @@
       when: (fed_ppdtuned_swap is not defined) or ('tuned' not in ansible_facts.packages)
     - name: determine GPU device in drm subsystem
       shell:
-        cmd: grep -ls ^connected /sys/class/drm/*/status | grep -o card[0-9] | sort | uniq | tail -1
+        cmd: grep -ls ^connected /sys/class/drm/*/status | grep -o card[0-9] | sort | uniq | sort -h | tail -1
         executable: /bin/bash
       changed_when: false
       register: card

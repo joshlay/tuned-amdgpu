@@ -16,7 +16,7 @@
 
 {# done this way to avoid issues with the card number possibly shifting after playbook run #}
 # dynamically determine the connected GPU using the DRM subsystem
-CARD=$(/usr/bin/grep -ls ^connected /sys/class/drm/*/status | /usr/bin/grep -o 'card[0-9]' | /usr/bin/sort | /usr/bin/uniq | /usr/bin/tail -1)
+CARD=$(/usr/bin/grep -ls ^connected /sys/class/drm/*/status | /usr/bin/grep -o 'card[0-9]' | /usr/bin/sort | /usr/bin/uniq | /usr/bin/sort -h | /usr/bin/tail -1)
 
 {# begin the templated script for 'default' profiles to reset state #}
 {% if 'default' in item.0.key %}
