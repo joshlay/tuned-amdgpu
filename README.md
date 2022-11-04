@@ -4,7 +4,13 @@ Hacky solution to integrate AMDGPU power profile control in `tuned` with Ansible
 
 Takes a list of existing `tuned` profiles and creates new ones based on them.  These new profiles include AMDGPU power/clock parameters
 
-_Warning_: Only tested with RX6000 series GPUs, it is probable that older AMD GPUs will not work properly.  Use at your own risk!
+An attempt is made to discover the active GPU using the 'connected' state in the `DRM` subsystem, example:
+```
+$ grep -ls ^connected /sys/class/drm/*/status | grep -o card[0-9] | sort | uniq | sort -h | tail -1
+card1
+```
+
+_Warning_: This is only tested with `RX6000` series GPUs, it is probable that older AMD GPUs will not work properly.  Use at your own risk!
 
 ## Profiles
 
@@ -29,7 +35,6 @@ These are the variables you're likely to want to change.  They are defined in [p
 | gpu_clock_min          | Sets the minimum (dynamic) GPU clock for the non-default `amdgpu` profiles                                                                                                                                                                                                                                                                 | 2000, results in 2Ghz                                                                                                                                                    |
 | gpu_clock_max          | Sets the maximum (dynamic) GPU clock for the non-default `amdgpu` profiles                                                                                                                                                                                                                                                                 | 2615, results in 2.62Ghz (rounded) -- mild overclock                                                                                                                     |
 | gpumem_clock_max       | Sets the _static_ memory clock for the GPU.  This is *not* the _effective_ data rate.  That is a multiple of this depending on the type of VRAM.<br/><br/>To avoid flickering this does *not* change dynamically with load.                                                                                                                | 1075, results in 1.1Ghz (base, rounded)                                                                                                                                  |
-| card                   | Set the `card#` for the card to use.<br/><br/>For a hint if this needs changed:<br/>`ls -lad /sys/class/drm/card[0-9]*`                                                                                                                                                                                                                    | `card0` -- assumes the first GPU                                                                                                                                         |
 | gpu_mv_offset          | GPU core voltage offset.  Takes +/- some integer in millivolts.  Can be used to both over _and_ under volt.                                                                                                                                                                                                                                | `-25` (undervolt `25mV` or `0.025V`)                                                                                                                                     |
 | base_profiles          | List of base tuned profiles to clone in the new AMDGPU profiles.  Defaults based on `Fedora`                                                                                                                                                                                                                                               | <ul><li>`balanced`</li><li>`desktop`</li><li>`latency-performance`</li><li>`network-latency`</li><li>`network-throughput`</li><li>`powersave`</li><li>`virtual-host`</li>|
 | amdgpu_profiles        | Dictionary mapping the AMDGPU power profiles found in `/sys/class/drm/card*/device/pp_power_profile_mode`.<br/><br>Allows adjustment to the automatic power/clock handling in the GPU using either predefined profiles or `custom`<br/><br/>More may be added, only three GPU power profiles are provided -- `default`, `VR`, and `custom`.| <pre>default:<br/>  pwrmode: 0<br/>VR:<br/>  pwrmode: 4<br/>custom:<br/>  pwrmode: 6</pre>|
