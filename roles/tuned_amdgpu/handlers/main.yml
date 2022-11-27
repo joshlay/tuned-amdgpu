@@ -1,0 +1,6 @@
+---
+# handlers file for tuned_amdgpu
+- name: Restart tuned
+  ansible.builtin.service:
+    name: tuned
+    state: restarted

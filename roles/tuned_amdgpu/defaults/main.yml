@@ -1,9 +1,10 @@
 ---
-# misc default vars handling unit conversion RE: power capabilities/limits
+# defaults file for tuned_amdgpu
 #
-# the discovered board limit for power capability (in microWatts)
+# vars handling unit conversion RE: power capabilities/limits
+# the discovered board limit for power capability; in microWatts, then converted
 power_max: "{{ power_max_b64['content'] | b64decode }}"
-board_watts: "{{ power_max|int/1000000 }}"
+board_watts: "{{ power_max | int / 1000000 }}"
 
 # internals for profile power calculations
 # item in the context of the with_nested loops in the play
@@ -11,4 +12,4 @@ profile_name: "{{ item.0.key }}"
 profile_percentage: "{{ (item.0.value.pwr_cap_multi * 100.0) | round(2) }}"
 profile_multi: "{{ item.0.value.pwr_cap_multi }}"
 profile_microwatts: "{{ power_max | float * profile_multi | float }}"
-profile_watts: "{{ profile_microwatts | int/1000000 }}"
+profile_watts: "{{ profile_microwatts | int / 1000000 }}"

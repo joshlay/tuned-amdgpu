@@ -1,0 +1,103 @@
+---
+# tasks file for tuned_amdgpu
+#
+- name: Gather package facts
+  ansible.builtin.package_facts:
+    manager: auto
+
+# note: power-profiles-daemon conflicts with tuned
+# since F35 it must be removed so tuned may be installed
+- name: Replace 'power-profiles-daemon' with 'tuned' on Fedora 35+
+  ansible.builtin.package: # use with_items/pkg since 'dnf' module in Ansible doesn't support 'swap'
+    name: "{{ item.name }}"
+    state: "{{ item.state }}"
+  with_items:
+    - {name: 'power-profiles-daemon', state: 'absent'}
+    - {name: 'tuned', state: 'present'}
+  when:
+    - ('power-profiles-daemon' in ansible_facts.packages) or ('tuned' not in ansible_facts.packages)
+    - ansible_distribution == 'Fedora'
+    - ansible_distribution_major_version|int > 35
+  register: fed_ppdtuned_swap
+  become: true
+
+- name: Install tuned
+  ansible.builtin.package:
+    name: tuned
+    state: present
+  when: (fed_ppdtuned_swap is not defined) or ('tuned' not in ansible_facts.packages)
+  become: true
+
+- name: Determine GPU device in drm subsystem
+  ansible.builtin.shell:
+    cmd: grep -ls ^connected /sys/class/drm/*/status | grep -o card[0-9] | sort | uniq | sort -h | tail -1
+    executable: /bin/bash
+  changed_when: false
+  register: card
+
+- name: Find hwmon/max power capability file for {{ card.stdout }}
+  ansible.builtin.find:
+    paths: /sys/class/drm/{{ card.stdout }}/device/hwmon
+    file_type: file
+    recurse: true
+    use_regex: true
+    patterns:
+      - '^power1_cap_max$'
+  register: hwmon
+
+- name: Find hwmon/current power limit file for {{ card.stdout }}
+  ansible.builtin.find:
+    paths: /sys/class/drm/{{ card.stdout }}/device/hwmon
+    file_type: file
+    recurse: true
+    use_regex: true
+    patterns:
+      - '^power1_cap$'
+  register: powercap_set
+
+- name: Get max power capability for {{ card.stdout }}
+  ansible.builtin.slurp:
+    src: "{{ hwmon.files.0.path }}"
+  register: power_max_b64
+
+- name: Create custom profile directories
+  ansible.builtin.file:
+    state: directory
+    path: /etc/tuned/{{ item.1 }}-amdgpu-{{ item.0.key }}
+    mode: "0755"
+  with_nested:
+    - "{{ lookup('dict', amdgpu_profiles) }}"
+    - "{{ base_profiles }}"
+  become: true
+
+- name: Template AMDGPU control/reset scripts
+  ansible.builtin.template:
+    src: templates/amdgpu-clock.sh.j2
+    dest: /etc/tuned/{{ item.1 }}-amdgpu-{{ item.0.key }}/amdgpu-clock.sh
+    owner: root
+    group: root
+    mode: "0755"
+  with_nested:
+    - "{{ lookup('dict', amdgpu_profiles) }}"
+    - "{{ base_profiles }}"
+  notify: Restart tuned
+  become: true
+
+- name: Template custom tuned profiles
+  ansible.builtin.template:
+    src: templates/tuned.conf.j2
+    dest: /etc/tuned/{{ item.1 }}-amdgpu-{{ item.0.key }}/tuned.conf
+    owner: root
+    group: root
+    mode: "0644"
+  with_nested:
+    - "{{ lookup('dict', amdgpu_profiles) }}"
+    - "{{ base_profiles }}"
+  notify: Restart tuned
+  become: true
+
+- name: Ensure tuned is enabled
+  ansible.builtin.service:
+    name: tuned
+    enabled: true
+  become: true

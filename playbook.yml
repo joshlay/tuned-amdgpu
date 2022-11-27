@@ -1,105 +1,44 @@
 ---
 - hosts: localhost
   name: "Configure 'tuned' with AMD GPU control"
-  become: true
-  vars:
-    # list of source tuned profiles available on Fedora (TODO: should dynamically discover)
-    # further modified with AMD GPU power/clock parameters, creating new profiles. eg: 'balanced-amdgpu-VR'
-    base_profiles:
-      - balanced
-      - desktop
-      - latency-performance
-      - network-latency
-      - network-throughput
-      - powersave
-      - virtual-host
-  handlers:
-    - name: Restart tuned
-      ansible.builtin.service:
-        name: tuned
-        state: restarted
-  tasks:
-    - name: Gather package facts
-      ansible.builtin.package_facts:
-        manager: auto
-    - name: Replace 'power-profiles-daemon' with 'tuned' on Fedora 35+
-      ansible.builtin.package: # use with_items/pkg since 'dnf' module in Ansible doesn't support 'swap'
-        name: "{{ item.name }}"
-        state: "{{ item.state }}"
-      with_items:
-        - {name: 'power-profiles-daemon', state: 'absent'}
-        - {name: 'tuned', state: 'present'}
-      when:
-        - ('power-profiles-daemon' in ansible_facts.packages) or ('tuned' not in ansible_facts.packages)
-        - ansible_distribution == 'Fedora'
-        - ansible_distribution_major_version|int > 35
-      register: fed_ppdtuned_swap
-      # 'power-profiles-daemon' was added/conflicts with 'tuned' since F35
-      # otherwise, ensure the 'tuned' package is installed
-    - name: Install tuned
-      ansible.builtin.package:
-        name: tuned
-        state: present
-      when: (fed_ppdtuned_swap is not defined) or ('tuned' not in ansible_facts.packages)
-    - name: Determine GPU device in drm subsystem
-      ansible.builtin.shell:
-        cmd: grep -ls ^connected /sys/class/drm/*/status | grep -o card[0-9] | sort | uniq | sort -h | tail -1
-        executable: /bin/bash
-      changed_when: false
-      register: card
-    - name: Find hwmon/max power capability file for {{ card.stdout }}
-      ansible.builtin.find:
-        paths: /sys/class/drm/{{ card.stdout }}/device/hwmon
-        file_type: file
-        recurse: true
-        use_regex: true
-        patterns:
-          - '^power1_cap_max$'
-      register: hwmon
-    - name: Find hwmon/current power limit file for {{ card.stdout }}
-      ansible.builtin.find:
-        paths: /sys/class/drm/{{ card.stdout }}/device/hwmon
-        file_type: file
-        recurse: true
-        use_regex: true
-        patterns:
-          - '^power1_cap$'
-      register: powercap_set
-    - name: Get max power capability for {{ card.stdout }}
-      ansible.builtin.slurp:
-        src: "{{ hwmon.files.0.path }}"
-      register: power_max_b64
-    - name: Create custom profile directories
-      ansible.builtin.file:
-        state: directory
-        path: /etc/tuned/{{ item.1 }}-amdgpu-{{ item.0.key }}
-        mode: "0755"
-      with_nested:
-        - "{{ lookup('dict', amdgpu_profiles) }}"
-        - "{{ base_profiles }}"
-    - name: Template AMDGPU control/reset scripts
-      ansible.builtin.template:
-        src: templates/amdgpu-clock.sh.j2
-        dest: /etc/tuned/{{ item.1 }}-amdgpu-{{ item.0.key }}/amdgpu-clock.sh
-        owner: root
-        group: root
-        mode: "0755"
-      with_nested:
-        - "{{ lookup('dict', amdgpu_profiles) }}"
-        - "{{ base_profiles }}"
-      notify: restart tuned
-    - name: Template custom tuned profiles
-      ansible.builtin.template:
-        src: templates/tuned.conf.j2
-        dest: /etc/tuned/{{ item.1 }}-amdgpu-{{ item.0.key }}/tuned.conf
-        owner: root
-        group: root
-        mode: "0644"
-      with_nested:
-        - "{{ lookup('dict', amdgpu_profiles) }}"
-        - "{{ base_profiles }}"
-      notify: restart tuned
-    - name: Ensure tuned is enabled
-      ansible.builtin.service:
-        name: tuned
-        enabled: true
+  roles:
+    # role prepares/modifies 'tuned' with AMD GPU power/clock parameters
+    # creates a new tuned profile made for each permutation of (base) 'tuned' profile + AMD powerplay profile
+    - role: tuned_amdgpu
+      # GPU *core* min/max (dynamic) clock, only applies to non-default amdgpu profiles
+      gpu_clock_min: "750" # default 500
+      gpu_clock_max: "2600" # default 2529
+      # GPU memory *static* clock, should also only apply for non-default amdgpu profiles
+      gpumem_clock_max: "1050"
+      # optional, applies offset to GPU voltage, eg: '+100' = to boost GPU core voltage 100mV or 0.1V. for the 'custom' GPU profile.
+      # gpu_mv_offset: "+50"
+      # list of source tuned profiles available on Fedora (TODO: should dynamically discover)
+      base_profiles:
+        - balanced
+        - desktop
+        - latency-performance
+        - network-latency
+        - network-throughput
+        - powersave
+        - virtual-host
+      # mapping of typical Navi generation power profiles from:
+      #  /sys/class/drm/card*/device/pp_power_profile_mode
+      # ref: https://www.kernel.org/doc/html/v4.20/gpu/amdgpu.html#pp-power-profile-mode
+      amdgpu_profiles:
+        default:
+          pwrmode: 0
+          pwr_cap_multi: 0.789473684210526 # 255W - default
+        3D:
+          pwrmode: 1
+          pwr_cap_multi: 0.789473684210526 # 255W - default
+        VR:
+          pwrmode: 4
+          pwr_cap_multi: 0.789473684210526 # 255W - default
+        compute:
+          pwrmode: 5
+          pwr_cap_multi: 0.789473684210526 # 255W - default
+        custom:
+          pwrmode: 6
+          pwr_cap_multi: 0.869969040247678 # 281W - slight boost
+      # both dictionaries are merged to create new 'tuned' profiles. eg:
+      #   'balanced-amdgpu-default', 'balanced-amdgpu-3D', 'balanced-amdgpu-video'
