@@ -19,8 +19,7 @@
 CARD=$(/usr/bin/grep -ls ^connected /sys/class/drm/*/status | /usr/bin/grep -o 'card[0-9]' | /usr/bin/sort | /usr/bin/uniq | /usr/bin/sort -h | /usr/bin/tail -1)
 
 {# begin the templated script for 'default' profiles to reset state #}
-{% if 'default' in item.0.key %}
-
+{% if 'default' in profile_name %}
 # set power state transition heuristics to default                                               
 echo '{{ item.0.value.pwrmode }}' | tee /sys/class/drm/"${CARD}"/device/pp_power_profile_mode
 
@@ -31,11 +30,10 @@ echo 'auto' | tee /sys/class/drm/"${CARD}"/device/power_dpm_force_performance_le
 # reset any existing profile clock changes
 echo 'r' | tee /sys/class/drm/"${CARD}"/device/pp_od_clk_voltage
 
-# give default profile {{ power_max_default_multi * 100.0 |int }}% of the max power capability
-#   {{ power_cap_default|int/1000000 }} Watts of {{ power_max|int/1000000 }} total
-echo '{{ power_cap_default }}' | tee {{ powercap_set.files.0.path }}
+# give '{{ profile_name }}' profile ~{{ profile_percentage }}% (rounded) of the max power capability
+#   {{ profile_watts }} Watts of {{ board_watts }} total
+echo '{{ profile_microwatts | int }}' | tee '{{ powercap_set.files.0.path }}'
 {% else %}
-
 {# begin the templated script for non-default AMD GPU profiles, eg: 'VR' or '3D_FULL_SCREEN' #}
 # set manual control mode
 #   allows control via 'pp_dpm_mclk', 'pp_dpm_sclk', 'pp_dpm_pcie', 'pp_dpm_fclk', and 'pp_power_profile_mode' files
@@ -43,12 +41,12 @@ echo '{{ power_cap_default }}' | tee {{ powercap_set.files.0.path }}
 #   GPU clocks are dynamic based on (load) condition
 echo 'manual' | tee /sys/class/drm/"${CARD}"/device/power_dpm_force_performance_level
 
-# set power state transition heuristics to '{{ item.0.key }}' profile
+# set power state transition heuristics to '{{ profile_name }}' profile
 echo '{{ item.0.value.pwrmode }}' | tee /sys/class/drm/"${CARD}"/device/pp_power_profile_mode
 
-# give this profile {{ power_max_custom_multi * 100.0 |int }}% of the max power capability
-#   {{ power_cap_custom|int/1000000 }} Watts of {{ power_max|int/1000000 }} total
-echo '{{ power_cap_custom }}' | tee {{ powercap_set.files.0.path }}
+# give '{{ profile_name }}' profile ~{{ profile_percentage }}% (rounded) of the max power capability
+#   {{ profile_watts }} Watts of {{ board_watts }} total
+echo '{{ profile_microwatts | int }}' | tee '{{ powercap_set.files.0.path }}'
 
 # set the minimum GPU clock
 echo 's 0 {{ gpu_clock_min }}' | tee /sys/class/drm/"${CARD}"/device/pp_od_clk_voltage
