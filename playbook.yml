@@ -10,9 +10,9 @@
       gpu_clock_min: "750" # default 500
       gpu_clock_max: "2600" # default 2529
       gpumem_clock_static: "1050"
-      # optional, applies offset (+/-) to GPU voltage
-      gpu_mv_offset: "-10"
-      # boosts GPU core voltage 100mV or 0.1V. for the 'custom' GPU profile.
+      # optional, applies offset (+/-) to GPU voltage by provided mV
+      gpu_mv_offset: "-50"
+      # '-50' undervolts GPU core voltage 50mV or 0.05V
       #
       # list of source tuned profiles available on Fedora (TODO: should dynamically discover)
       base_profiles:
