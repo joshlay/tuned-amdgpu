@@ -4,3 +4,4 @@
   ansible.builtin.service:
     name: tuned
     state: restarted
+  become: true
