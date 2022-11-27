@@ -8,10 +8,14 @@
       # GPU *core* min/max (dynamic) clock, only applies to non-default amdgpu profiles
       gpu_clock_min: "750" # default 500
       gpu_clock_max: "2600" # default 2529
+      #
       # GPU memory *static* clock, should also only apply for non-default amdgpu profiles
       gpumem_clock_max: "1050"
-      # optional, applies offset to GPU voltage, eg: '+100' = to boost GPU core voltage 100mV or 0.1V. for the 'custom' GPU profile.
-      # gpu_mv_offset: "+50"
+      #
+      # optional, applies offset to GPU voltage
+      # gpu_mv_offset: ""
+      # eg: '+100' = to boost GPU core voltage 100mV or 0.1V. for the 'custom' GPU profile.
+      #
       # list of source tuned profiles available on Fedora (TODO: should dynamically discover)
       base_profiles:
         - balanced
@@ -21,9 +25,12 @@
         - network-throughput
         - powersave
         - virtual-host
+      #
       # mapping of typical Navi generation power profiles from:
-      #  /sys/class/drm/card*/device/pp_power_profile_mode
+      #   /sys/class/drm/card*/device/pp_power_profile_mode
       # ref: https://www.kernel.org/doc/html/v4.20/gpu/amdgpu.html#pp-power-profile-mode
+      # 'pwr_cap_multi' is multiplied against board *limit* to determine profile wattage; 0.5 = 50%
+      # values below reflect my 6900XT
       amdgpu_profiles:
         default:
           pwrmode: 0
