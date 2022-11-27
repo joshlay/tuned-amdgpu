@@ -5,16 +5,14 @@
     # role prepares/modifies 'tuned' with AMD GPU power/clock parameters
     # creates a new tuned profile made for each permutation of (base) 'tuned' profile + AMD powerplay profile
     - role: tuned_amdgpu
-      # GPU *core* min/max (dynamic) clock, only applies to non-default amdgpu profiles
+      # note: 'gpu_*' vars only apply with the 'custom' suffixed profiles created by this tooling
+      # profiles based on the 'default' amdgpu power profile mode use default clocks
       gpu_clock_min: "750" # default 500
       gpu_clock_max: "2600" # default 2529
-      #
-      # GPU memory *static* clock, should also only apply for non-default amdgpu profiles
-      gpumem_clock_max: "1050"
-      #
-      # optional, applies offset to GPU voltage
-      # gpu_mv_offset: ""
-      # eg: '+100' = to boost GPU core voltage 100mV or 0.1V. for the 'custom' GPU profile.
+      gpumem_clock_static: "1050"
+      # optional, applies offset (+/-) to GPU voltage
+      gpu_mv_offset: "-10"
+      # boosts GPU core voltage 100mV or 0.1V. for the 'custom' GPU profile.
       #
       # list of source tuned profiles available on Fedora (TODO: should dynamically discover)
       base_profiles:

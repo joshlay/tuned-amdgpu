@@ -55,7 +55,7 @@ echo 's 0 {{ gpu_clock_min }}' | tee /sys/class/drm/"${CARD}"/device/pp_od_clk_v
 echo 's 1 {{ gpu_clock_max }}' | tee /sys/class/drm/"${CARD}"/device/pp_od_clk_voltage
 
 # set the maximum GPU *memory* clock
-echo 'm 1 {{ gpumem_clock_max }}' | tee /sys/class/drm/"${CARD}"/device/pp_od_clk_voltage
+echo 'm 1 {{ gpumem_clock_static }}' | tee /sys/class/drm/"${CARD}"/device/pp_od_clk_voltage
 {% if gpu_mv_offset is defined %}
 
 # offset GPU voltage {{ gpu_mv_offset }}mV
