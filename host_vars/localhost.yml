@@ -4,7 +4,7 @@
 # adds a power multiplier, see comments below for more info
 # more reference driver profiles may be added, but do not remove default.
 amdgpu_profiles:
-  default:    
+  default:
     pwrmode: 0
     pwr_cap_multi: 0.789473684210526 # 255W - default
   3D:
@@ -46,4 +46,4 @@ gpu_clock_max: "2500" # default 2529
 gpumem_clock_max: "1050"
 #
 # optional, applies offset to GPU voltage, eg: '+100' = to boost GPU core voltage 100mV or 0.1V. for the 'custom' GPU profile.
-#gpu_mv_offset: "+50"
+# gpu_mv_offset: "+50"
