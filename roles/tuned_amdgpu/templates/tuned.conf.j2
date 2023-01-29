@@ -20,3 +20,9 @@ vm.max_map_count=1048576
 [gpuclockscript]
 type=script
 script=${i:PROFILE_DIR}/amdgpu-clock.sh
+
+# for SSDs with no RPM, set no IO scheduler
+[ssdnosched]
+type=disk
+devices_udev_regex=(ID_ATA_ROTATION_RATE_RPM=0)
+elevator=none
