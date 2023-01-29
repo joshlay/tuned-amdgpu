@@ -7,9 +7,9 @@
     - role: tuned_amdgpu
       # note: 'gpu_*' vars only apply with the 'custom' suffixed profiles created by this tooling
       # profiles based on the 'default' amdgpu power profile mode use default clocks
-      gpu_clock_min: "750" # default 500
+      gpu_clock_min: "500" # default 500
       gpu_clock_max: "2600" # default 2529
-      gpumem_clock_static: "1050"
+      gpumem_clock_static: "1075"
       # optional, applies offset (+/-) to GPU voltage by provided mV
       gpu_mv_offset: "-50"
       # '-50' undervolts GPU core voltage 50mV or 0.05V
@@ -32,18 +32,21 @@
       amdgpu_profiles:
         default:
           pwrmode: 0
-          pwr_cap_multi: 0.789473684210526 # 255W - default
+          pwr_cap_multi: 0.789473684210526 # 255W - slightly reduced, maintains clocks well
         3D:
           pwrmode: 1
-          pwr_cap_multi: 0.789473684210526 # 255W - default
+          pwr_cap_multi: 0.869969040247678 # 281W - default
+        powersave:
+          pwrmode: 2
+          pwr_cap_multi: 0.869969040247678
         VR:
           pwrmode: 4
-          pwr_cap_multi: 0.789473684210526 # 255W - default
+          pwr_cap_multi: 0.869969040247678
         compute:
           pwrmode: 5
-          pwr_cap_multi: 0.789473684210526 # 255W - default
+          pwr_cap_multi: 0.869969040247678
         custom:
           pwrmode: 6
-          pwr_cap_multi: 0.869969040247678 # 281W - slight boost
+          pwr_cap_multi: 1.0 # 323W - full capability
       # both dictionaries are merged to create new 'tuned' profiles. eg:
       #   'balanced-amdgpu-default', 'balanced-amdgpu-3D', 'balanced-amdgpu-video'
