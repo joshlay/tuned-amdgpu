@@ -63,22 +63,22 @@
 - name: Create custom profile directories
   ansible.builtin.file:
     state: directory
-    path: /etc/tuned/{{ item.1 }}-amdgpu-{{ item.0.key }}
+    path: /etc/tuned/{{ item.1 }}-amdgpu-{{ item.0 }}
     mode: "0755"
   with_nested:
-    - "{{ lookup('dict', amdgpu_profiles) }}"
+    - "{{ amdgpu_profiles }}"
     - "{{ base_profiles }}"
   become: true
 
 - name: Template AMDGPU control/reset scripts
   ansible.builtin.template:
     src: templates/amdgpu-clock.sh.j2
-    dest: /etc/tuned/{{ item.1 }}-amdgpu-{{ item.0.key }}/amdgpu-clock.sh
+    dest: /etc/tuned/{{ item.1 }}-amdgpu-{{ item.0 }}/amdgpu-clock.sh
     owner: root
     group: root
     mode: "0755"
   with_nested:
-    - "{{ lookup('dict', amdgpu_profiles) }}"
+    - "{{ amdgpu_profiles }}"
     - "{{ base_profiles }}"
   notify: Restart tuned
   become: true
@@ -86,12 +86,12 @@
 - name: Template custom tuned profiles
   ansible.builtin.template:
     src: templates/tuned.conf.j2
-    dest: /etc/tuned/{{ item.1 }}-amdgpu-{{ item.0.key }}/tuned.conf
+    dest: /etc/tuned/{{ item.1 }}-amdgpu-{{ item.0 }}/tuned.conf
     owner: root
     group: root
     mode: "0644"
   with_nested:
-    - "{{ lookup('dict', amdgpu_profiles) }}"
+    - "{{ amdgpu_profiles }}"
     - "{{ base_profiles }}"
   notify: Restart tuned
   become: true

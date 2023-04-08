@@ -8,8 +8,20 @@ board_watts: "{{ power_max | int / 1000000 }}"
 
 # internals for profile power calculations
 # item in the context of the with_nested loops in the play
-profile_name: "{{ item.0.key }}"
-profile_percentage: "{{ (item.0.value.pwr_cap_multi * 100.0) | round(2) }}"
-profile_multi: "{{ item.0.value.pwr_cap_multi }}"
-profile_microwatts: "{{ power_max | float * profile_multi | float }}"
-profile_watts: "{{ profile_microwatts | int / 1000000 }}"
+profile_name: "{{ item.0 }}"
+
+# determine percentage for human-friendly comments
+power_default_pct: "{{ (gpu_power_multi.default * 100.0) | round(2) }}"
+power_oc_pct: "{{ (gpu_power_multi.overclock * 100.0) | round(2) }}"
+
+# in microWatts, actually written to sysfs
+power_default_mw: "{{ (power_max | float) * (gpu_power_multi.default | float) }}"
+power_oc_mw: "{{ (power_max | float) * (gpu_power_multi.overclock | float) }}"
+
+# wattages - more human-friendly comments
+power_default_watts: "{{ (power_default_mw | int) / 1000000 }}"
+power_oc_watts: "{{ (power_oc_mw | int) / 1000000 }}"
+
+amdgpu_profiles:
+  - default
+  - overclock

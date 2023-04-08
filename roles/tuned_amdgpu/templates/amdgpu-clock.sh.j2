@@ -20,9 +20,6 @@ CARD=$(/usr/bin/grep -ls ^connected /sys/class/drm/*/status | /usr/bin/grep -o '
 
 {# begin the templated script for 'default' profiles to reset state #}
 {% if 'default' in profile_name %}
-# set power state transition heuristics to default                                               
-echo '{{ item.0.value.pwrmode }}' | tee /sys/class/drm/"${CARD}"/device/pp_power_profile_mode
-
 # set control mode back to auto
 #   attempts to dynamically set optimal power profile for (load) conditions
 echo 'auto' | tee /sys/class/drm/"${CARD}"/device/power_dpm_force_performance_level
@@ -30,23 +27,20 @@ echo 'auto' | tee /sys/class/drm/"${CARD}"/device/power_dpm_force_performance_le
 # reset any existing profile clock changes
 echo 'r' | tee /sys/class/drm/"${CARD}"/device/pp_od_clk_voltage
 
-# give '{{ profile_name }}' profile ~{{ profile_percentage }}% (rounded) of the max power capability
-#   {{ profile_watts }} Watts of {{ board_watts }} total
-echo '{{ profile_microwatts | int }}' | tee '{{ powercap_set.files.0.path }}'
+# give '{{ profile_name }}' profile ~{{ power_default_pct }}% (rounded) of the max power capability
+#   {{ power_default_watts }} Watts of {{ board_watts }} total
+echo '{{ power_default_mw | int }}' | tee '{{ powercap_set.files.0.path }}'
 {% else %}
 {# begin the templated script for non-default AMD GPU profiles, eg: 'VR' or '3D_FULL_SCREEN' #}
 # set manual control mode
 #   allows control via 'pp_dpm_mclk', 'pp_dpm_sclk', 'pp_dpm_pcie', 'pp_dpm_fclk', and 'pp_power_profile_mode' files
 #   only interested in 'pp_power_profile_mode' for power and 'pp_dpm_mclk' for memory clock (flickering).
 #   GPU clocks are dynamic based on (load) condition
-echo 'manual' | tee /sys/class/drm/"${CARD}"/device/power_dpm_force_performance_level
+#echo 'manual' | tee /sys/class/drm/"${CARD}"/device/power_dpm_force_performance_level
 
-# set power state transition heuristics to '{{ profile_name }}' profile
-echo '{{ item.0.value.pwrmode }}' | tee /sys/class/drm/"${CARD}"/device/pp_power_profile_mode
-
-# give '{{ profile_name }}' profile ~{{ profile_percentage }}% (rounded) of the max power capability
-#   {{ profile_watts }} Watts of {{ board_watts }} total
-echo '{{ profile_microwatts | int }}' | tee '{{ powercap_set.files.0.path }}'
+# give '{{ profile_name }}' profile ~{{ power_oc_pct }}% (rounded) of the max power capability
+#   {{ power_oc_watts }} Watts of {{ board_watts }} total
+echo '{{ power_oc_mw | int }}' | tee '{{ powercap_set.files.0.path }}'
 
 # set the minimum GPU clock
 echo 's 0 {{ gpu_clock_min }}' | tee /sys/class/drm/"${CARD}"/device/pp_od_clk_voltage
@@ -54,7 +48,8 @@ echo 's 0 {{ gpu_clock_min }}' | tee /sys/class/drm/"${CARD}"/device/pp_od_clk_v
 # set the maximum GPU clock
 echo 's 1 {{ gpu_clock_max }}' | tee /sys/class/drm/"${CARD}"/device/pp_od_clk_voltage
 
-# set the maximum GPU *memory* clock
+# set the minimum / maximum GPU *memory* clock - force it high
+echo 'm 0 {{ gpumem_clock_static }}' | tee /sys/class/drm/"${CARD}"/device/pp_od_clk_voltage
 echo 'm 1 {{ gpumem_clock_static }}' | tee /sys/class/drm/"${CARD}"/device/pp_od_clk_voltage
 {% if gpu_mv_offset is defined %}
 
@@ -68,5 +63,9 @@ echo 'c' | tee /sys/class/drm/"${CARD}"/device/pp_od_clk_voltage
 # force GPU memory into highest clock (fix flickering)
 #   pp_dpm_*clk settings are unintuitive, giving profiles that may be used
 #   opt not to set the others (eg: sclk/fclk) - those should remain for benefits from the curve
-echo '3' | tee /sys/class/drm/"${CARD}"/device/pp_dpm_mclk
+# echo '3' | tee /sys/class/drm/"${CARD}"/device/pp_dpm_mclk
+
+# note 4/8/2023: instead of 'manual'... deal with broken power management, force clocks to high
+# ref: https://gitlab.freedesktop.org/drm/amd/-/issues/1500
+echo 'high' | tee /sys/class/drm/"${CARD}"/device/power_dpm_force_performance_level
 {% endif %}
