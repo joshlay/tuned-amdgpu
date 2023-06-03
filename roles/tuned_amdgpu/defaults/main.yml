@@ -1,26 +1,10 @@
 ---
 # defaults file for tuned_amdgpu
 #
-# vars handling unit conversion RE: power capabilities/limits
-# the discovered board limit for power capability; in microWatts, then converted
-power_max: "{{ power_max_b64['content'] | b64decode }}"
-board_watts: "{{ power_max | int / 1000000 }}"
 
 # internals for profile power calculations
 # item in the context of the with_nested loops in the play
 profile_name: "{{ item.0 }}"
-
-# determine percentage for human-friendly comments
-power_default_pct: "{{ (gpu_power_multi.default * 100.0) | round(2) }}"
-power_oc_pct: "{{ (gpu_power_multi.overclock * 100.0) | round(2) }}"
-
-# in microWatts, actually written to sysfs
-power_default_mw: "{{ (power_max | float) * (gpu_power_multi.default | float) }}"
-power_oc_mw: "{{ (power_max | float) * (gpu_power_multi.overclock | float) }}"
-
-# wattages - more human-friendly comments
-power_default_watts: "{{ (power_default_mw | int) / 1000000 }}"
-power_oc_watts: "{{ (power_oc_mw | int) / 1000000 }}"
 
 amdgpu_profiles:
   - default

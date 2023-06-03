@@ -18,6 +18,29 @@
 # dynamically determine the connected GPU using the DRM subsystem
 CARD=$(/usr/bin/grep -ls ^connected /sys/class/drm/*/status | /usr/bin/grep -o 'card[0-9]' | /usr/bin/sort | /usr/bin/uniq | /usr/bin/sort -h | /usr/bin/tail -1)
 
+function get_hwmon_dir() {
+    CARD_DIR="/sys/class/drm/${1}/device/"
+    for CANDIDATE in "${CARD_DIR}"/hwmon/hwmon*; do
+            if [[ -f "${CANDIDATE}"/power1_cap ]]; then
+                    # found a valid hwmon dir
+                    echo "${CANDIDATE}"
+            fi
+    done
+}
+
+# determine the hwmon directory
+HWMON_DIR=$(get_hwmon_dir "${CARD}")
+
+# read all of the power profiles, used to get the IDs for assignment later
+PROFILE_MODES=$(< /sys/class/drm/"${CARD}"/device/pp_power_profile_mode)
+
+# get power capability; later used determine limits
+read -r -d '' POWER_CAP < "$HWMON_DIR"/power1_cap_max
+
+# enable THP; profile enables the 'vm.compaction_proactiveness' sysctl
+# improves allocation latency
+echo 'always' | tee /sys/kernel/mm/transparent_hugepage/enabled
+
 {# begin the templated script for 'default' profiles to reset state #}
 {% if 'default' in profile_name %}
 # set control mode back to auto
@@ -27,29 +50,27 @@ echo 'auto' | tee /sys/class/drm/"${CARD}"/device/power_dpm_force_performance_le
 # reset any existing profile clock changes
 echo 'r' | tee /sys/class/drm/"${CARD}"/device/pp_od_clk_voltage
 
-# give '{{ profile_name }}' profile ~{{ power_default_pct }}% (rounded) of the max power capability
-#   {{ power_default_watts }} Watts of {{ board_watts }} total
-echo '{{ power_default_mw | int }}' | tee '{{ powercap_set.files.0.path }}'
+# adjust power limit using multiplier against board capability
+POWER_LIM_DEFAULT=$(/usr/bin/awk -v m="$POWER_CAP" -v n={{ gpu_power_multi.default }} 'BEGIN {printf "%.0f", (m*n)}')
+echo "$POWER_LIM_DEFAULT" | tee "${HWMON_DIR}/power1_cap"
+
+# extract the power-saving profile ID number
+PROF_POWER_SAVING_NUM=$(/usr/bin/awk '$0 ~ /POWER_SAVING.*:/ {print $1}' <<< "$PROFILE_MODES")
+
+# reset power/clock heuristics to power-saving
+echo "${PROF_POWER_SAVING_NUM}" | tee /sys/class/drm/"${CARD}"/device/pp_power_profile_mode
 {% else %}
-{# begin the templated script for non-default AMD GPU profiles, eg: 'VR' or '3D_FULL_SCREEN' #}
-# set manual control mode
-#   allows control via 'pp_dpm_mclk', 'pp_dpm_sclk', 'pp_dpm_pcie', 'pp_dpm_fclk', and 'pp_power_profile_mode' files
-#   only interested in 'pp_power_profile_mode' for power and 'pp_dpm_mclk' for memory clock (flickering).
-#   GPU clocks are dynamic based on (load) condition
-#echo 'manual' | tee /sys/class/drm/"${CARD}"/device/power_dpm_force_performance_level
-
-# give '{{ profile_name }}' profile ~{{ power_oc_pct }}% (rounded) of the max power capability
-#   {{ power_oc_watts }} Watts of {{ board_watts }} total
-echo '{{ power_oc_mw | int }}' | tee '{{ powercap_set.files.0.path }}'
-
-# set the minimum GPU clock
+{# begin the templated script for 'overclocked' AMD GPU profiles based on the existing tuned profiles #}
+# set the minimum GPU clock - for best performance, this should be near the maximum
+# RX6000 series power management *sucks*
 echo 's 0 {{ gpu_clock_min }}' | tee /sys/class/drm/"${CARD}"/device/pp_od_clk_voltage
 
 # set the maximum GPU clock
 echo 's 1 {{ gpu_clock_max }}' | tee /sys/class/drm/"${CARD}"/device/pp_od_clk_voltage
 
-# set the minimum / maximum GPU *memory* clock - force it high
-echo 'm 0 {{ gpumem_clock_static }}' | tee /sys/class/drm/"${CARD}"/device/pp_od_clk_voltage
+# set the GPU *memory* clock
+# normally this would appear disregarded, memory clocked at the minimum allowed by the overdrive (OD) range
+# it follows the core clock; if both 0/1 profiles for _it_ are high enough, the memory will follow
 echo 'm 1 {{ gpumem_clock_static }}' | tee /sys/class/drm/"${CARD}"/device/pp_od_clk_voltage
 {% if gpu_mv_offset is defined %}
 
@@ -60,12 +81,30 @@ echo 'vo {{ gpu_mv_offset }}' | tee /sys/class/drm/"${CARD}"/device/pp_od_clk_vo
 # commit the changes
 echo 'c' | tee /sys/class/drm/"${CARD}"/device/pp_od_clk_voltage
 
-# force GPU memory into highest clock (fix flickering)
-#   pp_dpm_*clk settings are unintuitive, giving profiles that may be used
-#   opt not to set the others (eg: sclk/fclk) - those should remain for benefits from the curve
-# echo '3' | tee /sys/class/drm/"${CARD}"/device/pp_dpm_mclk
+# force GPU core and memory into highest clocks (fix flickering and poor power management)
+# set manual control mode
+#   allows control via 'pp_dpm_mclk', 'pp_dpm_sclk', 'pp_dpm_pcie', 'pp_dpm_fclk', and 'pp_power_profile_mode' files
+echo 'manual' | tee /sys/class/drm/"${CARD}"/device/power_dpm_force_performance_level
 
-# note 4/8/2023: instead of 'manual'... deal with broken power management, force clocks to high
+# adjust power limit using multiplier against board capability
+POWER_LIM_OC=$(/usr/bin/awk -v m="$POWER_CAP" -v n={{ gpu_power_multi.overclock }} 'BEGIN {printf "%.0f", (m*n)}')
+echo "$POWER_LIM_OC" | tee "${HWMON_DIR}/power1_cap"
+
+#   pp_dpm_*clk settings are unintuitive, giving profiles that may be used
+echo '1' | tee /sys/class/drm/"${CARD}"/device/pp_dpm_sclk
+echo '3' | tee /sys/class/drm/"${CARD}"/device/pp_dpm_mclk
+echo '2' | tee /sys/class/drm/"${CARD}"/device/pp_dpm_fclk
+echo '2' | tee /sys/class/drm/"${CARD}"/device/pp_dpm_socclk
+
+# extract the VR power profile ID number
+PROF_VR_NUM=$(/usr/bin/awk '$0 ~ /VR.*:/ {print $1}' <<< "$PROFILE_MODES")
+
+# force 'overclocked' profile to 'VR' power/clock heuristics
+# latency/frame timing seemed favorable with relatively-close minimum clocks
+echo "${PROF_VR_NUM}" | tee /sys/class/drm/"${CARD}"/device/pp_power_profile_mode
+
+# note 4/8/2023: instead of 'manual'... try dealing with broken power management, force clocks to high
 # ref: https://gitlab.freedesktop.org/drm/amd/-/issues/1500
-echo 'high' | tee /sys/class/drm/"${CARD}"/device/power_dpm_force_performance_level
+# followup: doesn't work that well in practice, still flaky on clocks/frame times
+#echo 'high' | tee /sys/class/drm/"${CARD}"/device/power_dpm_force_performance_level
 {% endif %}

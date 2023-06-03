@@ -5,8 +5,9 @@ Hacky solution to integrate AMDGPU power control and overclocking in `tuned` wit
 Takes a list of existing `tuned` profiles and creates new ones based on them.  These new profiles include AMDGPU power/clock parameters
 
 An attempt is made to discover the active GPU using the 'connected' state in the `DRM` subsystem, example:
-```
-$ grep -ls ^connected /sys/class/drm/*/status | grep -o card[0-9] | sort | uniq | sort -h | tail -1
+
+```bash
+~ $ grep -ls ^connected /sys/class/drm/*/status | grep -o card[0-9] | sort | uniq | sort -h | tail -1
 card1
 ```
 

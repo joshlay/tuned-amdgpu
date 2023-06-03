@@ -11,8 +11,12 @@ net.core.default_qdisc=fq
 net.ipv4.tcp_congestion_control=bbr2
 net.core.rmem_max=33554432
 net.core.wmem_max=33554432
-dev.raid.speed_limit_min=600000
-dev.raid.speed_limit_max=9000000
+dev.raid.speed_limit_min=1000000
+dev.raid.speed_limit_max=6000000
+# improve THP allocation latency, compact in background
+vm.compaction_proactiveness=30
+# make page lock theft slightly more fair
+vm.page_lock_unfairness=1
 # allow some games to run (eg: DayZ)
 vm.max_map_count=1048576
 
