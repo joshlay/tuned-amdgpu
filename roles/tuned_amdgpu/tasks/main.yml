@@ -28,6 +28,14 @@
   when: (fed_ppdtuned_swap is not defined) or ('tuned' not in ansible_facts.packages)
   become: true
 
+- name: Ensure dynamic tuning is disabled
+  ansible.builtin.lineinfile:
+    path: /etc/tuned/tuned-main.conf
+    regexp: '^dynamic_tuning.*='
+    line: 'dynamic_tuning = 0'
+  notify: Restart tuned
+  become: true
+
 - name: Create custom profile directories
   ansible.builtin.file:
     state: directory
@@ -38,20 +46,31 @@
     - "{{ base_profiles }}"
   become: true
 
-- name: Template AMDGPU control/reset scripts
+- name: Copy 'common' AMDGPU script for all profiles
+  ansible.builtin.copy:
+    src: profile-common.sh
+    dest: "/etc/tuned/{{ item.1 }}-amdgpu-{{ item.0 }}/amdgpu-common.sh"
+    mode: "0644"  # sourced, doesn't require executable bit
+    owner: root
+    group: root
+  notify: Restart tuned
+  with_nested:
+    - "{{ amdgpu_profiles }}"
+    - "{{ base_profiles }}"
+  become: true
+
+- name: Template custom AMDGPU profile scripts
   ansible.builtin.template:
-    src: templates/amdgpu-clock.sh.j2
+    src: amdgpu-profile-{{ item.0 }}.sh.j2
     dest: /etc/tuned/{{ item.1 }}-amdgpu-{{ item.0 }}/amdgpu-clock.sh
     owner: root
     group: root
     mode: "0755"
-  with_nested:
-    - "{{ amdgpu_profiles }}"
-    - "{{ base_profiles }}"
+  loop: "{{ amdgpu_profiles | product(base_profiles) | list }}"
   notify: Restart tuned
   become: true
 
-- name: Template custom tuned profiles
+- name: Template tuned.conf for custom profiles
   ansible.builtin.template:
     src: templates/tuned.conf.j2
     dest: /etc/tuned/{{ item.1 }}-amdgpu-{{ item.0 }}/tuned.conf

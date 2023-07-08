@@ -13,53 +13,10 @@
 # AMDGPU driver/sysfs references:
 #   https://01.org/linuxgraphics/gfx-docs/drm/gpu/amdgpu.html
 #   https://docs.kernel.org/gpu/amdgpu/thermal.html
+#
+# start by including the 'common' script; determines card/hwmon dir/power profiles/power capability
+. $(dirname "${BASH_SOURCE[0]}")/amdgpu-common.sh
 
-{# done this way to avoid issues with the card number possibly shifting after playbook run #}
-# dynamically determine the connected GPU using the DRM subsystem
-CARD=$(/usr/bin/grep -ls ^connected /sys/class/drm/*/status | /usr/bin/grep -o 'card[0-9]' | /usr/bin/sort | /usr/bin/uniq | /usr/bin/sort -h | /usr/bin/tail -1)
-
-function get_hwmon_dir() {
-    CARD_DIR="/sys/class/drm/${1}/device/"
-    for CANDIDATE in "${CARD_DIR}"/hwmon/hwmon*; do
-            if [[ -f "${CANDIDATE}"/power1_cap ]]; then
-                    # found a valid hwmon dir
-                    echo "${CANDIDATE}"
-            fi
-    done
-}
-
-# determine the hwmon directory
-HWMON_DIR=$(get_hwmon_dir "${CARD}")
-
-# read all of the power profiles, used to get the IDs for assignment later
-PROFILE_MODES=$(< /sys/class/drm/"${CARD}"/device/pp_power_profile_mode)
-
-# get power capability; later used determine limits
-read -r -d '' POWER_CAP < "$HWMON_DIR"/power1_cap_max
-
-# enable THP; profile enables the 'vm.compaction_proactiveness' sysctl
-# improves allocation latency
-echo 'always' | tee /sys/kernel/mm/transparent_hugepage/enabled
-
-{# begin the templated script for 'default' profiles to reset state #}
-{% if 'default' in profile_name %}
-# set control mode back to auto
-#   attempts to dynamically set optimal power profile for (load) conditions
-echo 'auto' | tee /sys/class/drm/"${CARD}"/device/power_dpm_force_performance_level
-
-# reset any existing profile clock changes
-echo 'r' | tee /sys/class/drm/"${CARD}"/device/pp_od_clk_voltage
-
-# adjust power limit using multiplier against board capability
-POWER_LIM_DEFAULT=$(/usr/bin/awk -v m="$POWER_CAP" -v n={{ gpu_power_multi.default }} 'BEGIN {printf "%.0f", (m*n)}')
-echo "$POWER_LIM_DEFAULT" | tee "${HWMON_DIR}/power1_cap"
-
-# extract the power-saving profile ID number
-PROF_POWER_SAVING_NUM=$(/usr/bin/awk '$0 ~ /POWER_SAVING.*:/ {print $1}' <<< "$PROFILE_MODES")
-
-# reset power/clock heuristics to power-saving
-echo "${PROF_POWER_SAVING_NUM}" | tee /sys/class/drm/"${CARD}"/device/pp_power_profile_mode
-{% else %}
 {# begin the templated script for 'overclocked' AMD GPU profiles based on the existing tuned profiles #}
 # set the minimum GPU clock - for best performance, this should be near the maximum
 # RX6000 series power management *sucks*
@@ -107,4 +64,3 @@ echo "${PROF_VR_NUM}" | tee /sys/class/drm/"${CARD}"/device/pp_power_profile_mod
 # ref: https://gitlab.freedesktop.org/drm/amd/-/issues/1500
 # followup: doesn't work that well in practice, still flaky on clocks/frame times
 #echo 'high' | tee /sys/class/drm/"${CARD}"/device/power_dpm_force_performance_level
-{% endif %}

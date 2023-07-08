@@ -9,3 +9,4 @@ profile_name: "{{ item.0 }}"
 amdgpu_profiles:
   - default
   - overclock
+  - peak
