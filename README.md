@@ -10,12 +10,14 @@ An attempt is made to discover the active GPU using the 'connected' state in the
 ~ $ grep -ls ^connected /sys/class/drm/*/status | grep -o card[0-9] | sort | uniq | sort -h | tail -1
 card1
 ```
-
 _Warning_: This is only tested with `RX6000` series GPUs, it is probable that other generations will *not* work properly.  Use at your own risk!
 
 ## Profiles
 
-An example of the output/provided profiles follow
+Two _'profiles'_ are in each name:
+
+- before `amdgpu` is the source profile provided with `tuned`
+- after `amdgpu` tells the GPU clock profile offered, outlined below
 
 | Output profile | Description |
 |:---|---|
