@@ -26,3 +26,16 @@ gpu_mv_offset: "+125" # add 125mV or 0.125V
 #      gpu_mv_offset: "+50" # add 50mV or 0.05V
 #      gpu_mv_offset: "+75" # add 75mV or 0.075V
 # '-50' undervolts GPU core voltage 50mV or 0.05V; untested - here be dragons/instability
+
+# optional kernel parameters to set as well
+sysctl:  # quote ints/cast to string to avoid surprises
+  kernel.dmesg_restrict: '0'  # allow regular users to see the kernel ring buffer
+  net.core.default_qdisc: fq  # congestion control
+  net.ipv4.tcp_congestion_control: bbr2  # cong. control part 2
+  net.core.rmem_max: '33554432'
+  net.core.wmem_max: '33554432'
+  dev.raid.speed_limit_min: '2000000'
+  dev.raid.speed_limit_max: '6000000'
+  vm.compaction_proactiveness: '30'  # improve THP allocation latency, compact in background
+  vm.page_lock_unfairness: '1'  # make page lock theft slightly more fair
+  vm.max_map_count: '1048576'  # allow some games to run (eg: DayZ)

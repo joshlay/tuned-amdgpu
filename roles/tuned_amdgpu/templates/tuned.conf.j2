@@ -2,35 +2,16 @@
 include={{ item.1 }}
 summary={{ item.1 }} + TCP/RAID tweaks + AMDGPU {{ item.0 }}
 
+{% if sysctl is defined %}
 [sysctl]
-# allow regular users to see the kernel ring buffer
-kernel.dmesg_restrict=0
-net.core.default_qdisc=fq
-# 'bbr2' requires a [modified] supporting kernel - stock Fedora kernels do *not* support it (currently)
-#    eg: 'kernel-xanmode-edge' from COPR 'rmnscnce/kernel-xanmod'
-net.ipv4.tcp_congestion_control=bbr2
-net.core.rmem_max=33554432
-net.core.wmem_max=33554432
-dev.raid.speed_limit_min=1000000
-dev.raid.speed_limit_max=6000000
-# improve THP allocation latency, compact in background
-vm.compaction_proactiveness=30
-# make page lock theft slightly more fair
-vm.page_lock_unfairness=1
-# allow some games to run (eg: DayZ)
-vm.max_map_count=1048576
+{% for _sysctl, value in sysctl.items() %}
+{{ _sysctl }}={{ value }}
+{% endfor %}
 
+{% endif %}
 # reference/execute AMDGPU control script
 # used because some sysfs interfaces are transactional
 # cannot be set by a single param in 'tuned'/[sysfs]
 [gpuclockscript]
 type=script
 script=${i:PROFILE_DIR}/amdgpu-clock.sh
-
-# for SSDs with no RPM, set no IO scheduler
-[ssdnosched]
-type=disk
-devices_udev_regex=(ID_ATA_ROTATION_RATE_RPM=0)
-# elevator=none
-elevator=kyber
-# elevator=mq-deadline
