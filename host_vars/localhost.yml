@@ -1,0 +1,28 @@
+---
+# note: 'gpu_*' vars only apply with the 'custom' suffixed profiles created by this tooling
+# profiles based on the 'default' amdgpu power profile mode use default clocks
+#
+# the connected AMD GPU is automatically discovered - assumes one
+# on swap to other AMD cards to avoid instability:
+#   'rm -rfv /etc/tuned/*amdgpu*'
+#
+# default 500, for best performance: near maximum. applies with 'overclock' tuned profile
+gpu_clock_min: "500"
+
+# gpu_clock_max: "2675" # default somewhere around 2529 to 2660.
+gpu_clock_max: "2750"
+
+gpumem_clock_static: "1075"
+
+gpu_power_multi:
+  default: 0.869969040247678 # 281W - real default
+  # overclock: 0.928792569659443 # 300W - slight boost
+  overclock: 1.0 # 323W - full board capability
+# optional, applies offset (+/-) to GPU voltage by provided mV
+# only counts for peak and overlock profiles
+#      gpu_mv_offset: "-20"
+
+gpu_mv_offset: "+125" # add 125mV or 0.125V
+#      gpu_mv_offset: "+50" # add 50mV or 0.05V
+#      gpu_mv_offset: "+75" # add 75mV or 0.075V
+# '-50' undervolts GPU core voltage 50mV or 0.05V; untested - here be dragons/instability
