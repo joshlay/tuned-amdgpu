@@ -1,5 +1,5 @@
 ---
 lab:
   hosts:
-    localhost:
+    workstation:
       ansible_connection: local
