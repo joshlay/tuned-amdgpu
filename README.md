@@ -1,15 +1,24 @@
 # tuned-amdgpu
 
-Hacky solution to integrate AMDGPU power control and overclocking in `tuned` with Ansible
+Hacky solution to integrate AMDGPU power control and overclocking in
+`tuned` with Ansible.
 
-Takes a list of existing `tuned` profiles and creates new ones based on them.  These new profiles include AMDGPU power/clock parameters
+_TLDR:_ See [my host_vars](./host_vars/localhost.yml) for an overview.
 
-An attempt is made to discover the active GPU using the 'connected' state in the `DRM` subsystem, example:
+A host will have a collection of `tuned` profiles.
+For example: `desktop`, `balanced`, `virt-host`
+
+*This* role extends *those* with AMD GPU power/clock/voltage control.
+Each gets `default`, `overclock`, and `peak` variations.
+
+An attempt is made to discover the active GPU using the 'connected' state
+in the `DRM` subsystem, example:
 
 ```bash
 ~ $ grep -ls ^connected /sys/class/drm/*/status | grep -o card[0-9] | sort | uniq | sort -h | tail -1
 card1
 ```
+
 _Warning_: This is only tested with `RX6000` series GPUs, it is probable that other generations will *not* work properly.  Use at your own risk!
 
 ## Profiles
