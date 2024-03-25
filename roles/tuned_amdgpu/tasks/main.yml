@@ -15,7 +15,6 @@
     - {name: 'power-profiles-daemon', state: 'absent'}
     - {name: 'tuned', state: 'present'}
   when:
-    - ('power-profiles-daemon' in ansible_facts.packages) or ('tuned' not in ansible_facts.packages)
     - ansible_distribution == 'Fedora'
     - ansible_distribution_major_version|int > 35
   register: fed_ppdtuned_swap
@@ -47,8 +46,8 @@
   become: true
 
 - name: Copy 'common' AMDGPU script for all profiles
-  ansible.builtin.copy:
-    src: profile-common.sh
+  ansible.builtin.template:
+    src: profile-common.sh.j2
     dest: "/etc/tuned/{{ item.1 }}-amdgpu-{{ item.0 }}/amdgpu-common.sh"
     mode: "0644"  # sourced, doesn't require executable bit
     owner: root
@@ -88,3 +87,12 @@
     name: tuned
     enabled: true
   become: true
+
+- name: Copy gamemode memlock limits.d booster
+  become: true
+  ansible.builtin.template:
+    src: etc.security.limits.d.99-gamemode-memlock.conf
+    dest: /etc/security/limits.d/99-gamemode-memlock.conf
+    owner: root
+    group: root
+    mode: '0644'
