@@ -1,14 +1,6 @@
 #!/bin/bash
-# script for tuned AMDGPU clock control
-# configures GPU power/clock characteristics
-# clocks/power in 3D are dynamic based on need/usage
-#
-# for 'amdgpu-default' tuned profiles, this will reset the characteristics to default
-# for others this will apply overclocking settings -- leaving clock choices to the associated power profile (eg: VR)
-#
-# rendered by Ansible with environment-appropriate values:
-#   card #, eg: card0
-#   path to discovered sysfs device files (power/clock/voltage control)
+{{ ansible_managed | comment }}
+# This is the 'default' script; resetting amdgpu clock/power/voltage tunables
 #
 # AMDGPU driver/sysfs references:
 #   https://01.org/linuxgraphics/gfx-docs/drm/gpu/amdgpu.html
