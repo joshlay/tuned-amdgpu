@@ -24,10 +24,6 @@ PROFILE_MODES=$(< /sys/class/drm/"${CARD}"/device/pp_power_profile_mode)
 # get power capability; later used determine limits
 read -r -d '' POWER_CAP < "$HWMON_DIR"/power1_cap_max
 
-# enable THP; profile enables the 'vm.compaction_proactiveness' sysctl
-# improves allocation latency
-echo 'always' | tee /sys/kernel/mm/transparent_hugepage/enabled
-
 # export determinations
 export CARD
 export HWMON_DIR
