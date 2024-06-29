@@ -10,3 +10,5 @@ amdgpu_profiles:
   - default
   - overclock
   - peak
+
+tuned_amdgpu_profile_dir: '/etc/tuned/profiles'  # introduced in '2.23.0-1'

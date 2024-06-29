@@ -5,6 +5,11 @@
   ansible.builtin.package_facts:
     manager: auto
 
+- name: Use legacy custom-profile directory when < 2.23.0
+  ansible.builtin.set_fact:
+    tuned_amdgpu_profile_dir: "/etc/tuned"
+  when: ansible_facts['packages']['tuned'][0]['version'] is version('2.23.0', '<')  # versions are in a list...? pick the first; only expect one
+
 # note: power-profiles-daemon conflicts with tuned
 # since F35 it must be removed so tuned may be installed
 - name: Replace 'power-profiles-daemon' with 'tuned' on Fedora 35+
@@ -38,7 +43,7 @@
 - name: Create custom profile directories
   ansible.builtin.file:
     state: directory
-    path: /etc/tuned/{{ item.1 }}-amdgpu-{{ item.0 }}
+    path: "{{ (tuned_amdgpu_profile_dir, item.1 + '-amdgpu-' + item.0) | ansible.builtin.path_join }}"
     mode: "0755"
   with_nested:
     - "{{ amdgpu_profiles }}"
@@ -48,7 +53,7 @@
 - name: Copy 'common' AMDGPU script for all profiles
   ansible.builtin.template:
     src: profile-common.sh.j2
-    dest: "/etc/tuned/{{ item.1 }}-amdgpu-{{ item.0 }}/amdgpu-common.sh"
+    dest: "{{ (tuned_amdgpu_profile_dir, item.1 + '-amdgpu-' + item.0, 'amdgpu-common.sh') | ansible.builtin.path_join }}"
     mode: "0644"  # sourced, doesn't require executable bit
     owner: root
     group: root
@@ -61,7 +66,7 @@
 - name: Template custom AMDGPU profile scripts
   ansible.builtin.template:
     src: amdgpu-profile-{{ item.0 }}.sh.j2
-    dest: /etc/tuned/{{ item.1 }}-amdgpu-{{ item.0 }}/amdgpu-clock.sh
+    dest: "{{ (tuned_amdgpu_profile_dir, item.1 + '-amdgpu-' + item.0, 'amdgpu-clock.sh') | ansible.builtin.path_join }}"
     owner: root
     group: root
     mode: "0755"
@@ -72,7 +77,7 @@
 - name: Template tuned.conf for custom profiles
   ansible.builtin.template:
     src: templates/tuned.conf.j2
-    dest: /etc/tuned/{{ item.1 }}-amdgpu-{{ item.0 }}/tuned.conf
+    dest: "{{ (tuned_amdgpu_profile_dir, item.1 + '-amdgpu-' + item.0, 'tuned.conf') | ansible.builtin.path_join }}"
     owner: root
     group: root
     mode: "0644"
