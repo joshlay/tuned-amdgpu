@@ -86,6 +86,8 @@
     - "{{ base_profiles }}"
   notify: Restart tuned
   become: true
+  tags:
+    - tuned.conf
 
 - name: Ensure tuned is enabled
   ansible.builtin.service:

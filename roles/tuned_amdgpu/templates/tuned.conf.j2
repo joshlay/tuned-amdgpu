@@ -4,16 +4,18 @@
 include={{ item.1 }}
 summary={{ item.1 }} + TCP/RAID tweaks + AMDGPU {{ item.0 }}
 
-{% if sysctl is defined %}
-[sysctl]
-{% for _sysctl, value in sysctl.items() %}
-{{ _sysctl }}={{ value }}
-{% endfor %}
-
-{% endif %}
 # reference/execute AMDGPU control script
 # used because some sysfs interfaces are transactional
 # cannot be set by a single param in 'tuned'/[sysfs]
 [gpuclockscript]
 type=script
 script=${i:PROFILE_DIR}/amdgpu-clock.sh
+{% if plugins is defined %}
+{% for section, options in plugins.items() %}
+{#+ give each plugin section some space +#}
+[{{ section }}]
+{% for key, value in options.items() %}
+{{ key }}={{ value }}
+{% endfor %}
+{% endfor %}
+{% endif %}
