@@ -49,17 +49,17 @@ gpu_power_multi_oc=1.0
 gpu_mv_offset=+60
 ```
 
-Changes will require switching `tuned` profiles to re-read/apply the config.
+Changes to this config are not immediately effective. Doing so requires switching `tuned` profiles or restarting the service.
 
-One can use [gamemode](https://wiki.archlinux.org/title/Gamemode) to do this automatically on start/stop.
-
-Sample `~/.config/gamemode.ini`:
+To ignore this limitation, one can use `gamemode` for dynamically switching. Sample `~/.config/gamemode.ini` below:
 
 ```ini
 [custom]
 start=tuned-adm profile latency-performance-amdgpu-overclock
 end=tuned-adm profile latency-performance-amdgpu-default
 ```
+
+See this [Arch Wiki](https://wiki.archlinux.org/title/Gamemode) link for more comprehensive information.
 
 ## Variables
 
