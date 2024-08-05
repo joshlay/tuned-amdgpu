@@ -36,7 +36,7 @@ Two _'profiles'_ are in each name:
 
 ## Config
 
-The playbook will render this config file: `/etc/tuned/amdgpu-profile-vars.conf`
+The playbook will render/make effective this config file: `/etc/tuned/amdgpu-profile-vars.conf`
 
 Here is a preview:
 
@@ -49,9 +49,9 @@ gpu_power_multi_oc=1.0
 gpu_mv_offset=+60
 ```
 
-Changes to this config are not immediately effective. Doing so requires switching `tuned` profiles or restarting the service.
+Changes outside of _Ansible_ are not immediately effective. Switching `tuned` profiles or restarting the service would be required.
 
-To ignore this limitation, one can use `gamemode` for dynamically switching. Sample `~/.config/gamemode.ini` below:
+One can use `gamemode` for dynamic switching. Sample `~/.config/gamemode.ini` below:
 
 ```ini
 [custom]
