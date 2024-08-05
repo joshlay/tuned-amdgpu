@@ -1,25 +1,25 @@
 # tuned-amdgpu
 
-Hacky solution to integrate AMDGPU power control and overclocking in
-`tuned` with Ansible.
+Hacky solution to integrate AMDGPU power/clock control into `tuned` profiles
+with Ansible.
 
-_TLDR:_ See [my host_vars](./host_vars/localhost.yml) for an overview.
+Extends existing profiles, such as:
 
-A host will have a collection of `tuned` profiles.
-For example: `desktop`, `balanced`, `virt-host`
+- `balanced`
+- `desktop`
+- `latency-performance`
+- `network-latency`
+- `powersave`, and so on
 
-*This* role extends *those* with AMD GPU power/clock/voltage control.
-Each gets `default`, `overclock`, and `peak` variations.
+Creating three variations of each, using the [AMDGPU hwmon interfaces](https://docs.kernel.org/gpu/amdgpu/thermal.html):
 
-An attempt is made to discover the active GPU using the 'connected' state
-in the `DRM` subsystem, example:
+- `default`: the out-of-the-box configuration
+- `overclock`: the optimized card configuration. Includes all of the clock/voltage/power settings
+- `peak`: the same as `overclock`, but with clock gating removed. May help profiling
 
-```bash
-~ $ grep -ls ^connected /sys/class/drm/*/status | grep -o card[0-9] | sort | uniq | sort -h | tail -1
-card1
-```
+Contrary to the name, `overclock` can be used to de-tune the card as well.
 
-_Warning_: This is only tested with `RX6000` series GPUs, it is probable that other generations will *not* work properly.  Use at your own risk!
+_Warning_: This is only tested with `RX6000` series GPUs, others may _not_ work properly. Use at your own risk!
 
 ## Profiles
 
