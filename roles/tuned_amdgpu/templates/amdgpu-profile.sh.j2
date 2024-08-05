@@ -1,0 +1,130 @@
+#!/bin/bash
+{{ ansible_managed | comment }}
+# This is the script for 'amdgpu' profiles, (re)setting clock/power/voltage tunables
+#
+# AMDGPU driver/sysfs references:
+#   https://01.org/linuxgraphics/gfx-docs/drm/gpu/amdgpu.html
+#   https://docs.kernel.org/gpu/amdgpu/thermal.html
+#
+# Variables shown below named '$TUNED_...' are given values by '/etc/tuned/amdgpu-profile-vars.conf'
+#
+# determine the connected GPU using the DRM subsystem. FIXME: assumes one card, make configurable
+CARD=$(/usr/bin/grep -ls ^connected /sys/class/drm/*/status | /usr/bin/grep -o 'card[0-9]' | /usr/bin/sort | /usr/bin/uniq | /usr/bin/sort -h | /usr/bin/tail -1)
+
+function get_hwmon_dir() {
+    CARD_DIR="/sys/class/drm/${1}/device/"
+    for CANDIDATE in "${CARD_DIR}"/hwmon/hwmon*; do
+            if [[ -f "${CANDIDATE}"/power1_cap ]]; then
+                    # found a valid hwmon dir
+                    echo "${CANDIDATE}"
+            fi
+    done
+}
+
+
+# determine the hwmon directory
+HWMON_DIR=$(get_hwmon_dir "${CARD}")
+
+# read all of the power profiles, used to get the IDs for assignment later
+PROFILE_MODES=$(< /sys/class/drm/"${CARD}"/device/pp_power_profile_mode)
+
+# get power capability; later used determine limits
+read -r -d '' POWER_CAP < "$HWMON_DIR"/power1_cap_max
+
+function amdgpu_profile_reset() {
+
+        # set control mode back to auto
+        #   attempts to dynamically set optimal power profile for (load) conditions
+        echo 'auto' | tee /sys/class/drm/"${CARD}"/device/power_dpm_force_performance_level
+
+        # reset any existing profile clock changes
+        echo 'r' | tee /sys/class/drm/"${CARD}"/device/pp_od_clk_voltage
+
+        # adjust power limit using multiplier against board capability
+        POWER_LIM_DEFAULT=$(/usr/bin/awk -v m="$POWER_CAP" -v n="${TUNED_gpu_power_multi_def}" 'BEGIN {printf "%.0f", (m*n)}')
+        echo "$POWER_LIM_DEFAULT" | tee "${HWMON_DIR}/power1_cap"
+
+        # extract the power-saving profile ID number
+        PROF_DEFAULT_NUM=$(/usr/bin/awk '$0 ~ /BOOTUP_DEFAULT.*:/ {print $1}' <<< "$PROFILE_MODES")
+
+        # reset power/clock heuristics to power-saving
+        echo "${PROF_DEFAULT_NUM}" | tee /sys/class/drm/"${CARD}"/device/pp_power_profile_mode
+
+        # delay before returning - have mercy, may be followed with other profile function calls
+        sleep 0.5
+
+}
+
+function amdgpu_profile_overclock() {
+        echo "s 0 ${TUNED_gpu_clock_min}" | tee /sys/class/drm/"${CARD}"/device/pp_od_clk_voltage
+        echo "s 1 ${TUNED_gpu_clock_max}" | tee /sys/class/drm/"${CARD}"/device/pp_od_clk_voltage
+        echo "m 1 ${TUNED_gpumem_clock_static}" | tee /sys/class/drm/"${CARD}"/device/pp_od_clk_voltage
+
+        # under/over-voltage is considered optional or less likely to be defined, checked before use
+        if [[ -n ${TUNED_gpu_mv_offset} ]]; then
+            echo "vo ${TUNED_gpu_mv_offset}" | tee /sys/class/drm/"${CARD}"/device/pp_od_clk_voltage
+        fi
+
+        # commit the changes
+        echo 'c' | tee /sys/class/drm/"${CARD}"/device/pp_od_clk_voltage
+
+        # force GPU core and memory into highest clocks (fix flickering and poor power management)
+        # set manual control mode
+        #   allows control via 'pp_dpm_mclk', 'pp_dpm_sclk', 'pp_dpm_pcie', 'pp_dpm_fclk', and 'pp_power_profile_mode' files
+        echo 'manual' | tee /sys/class/drm/"${CARD}"/device/power_dpm_force_performance_level
+
+        # adjust power limit using multiplier against board capability
+        POWER_LIM_OC=$(/usr/bin/awk -v m="$POWER_CAP" -v n="${TUNED_gpu_power_multi_oc}" 'BEGIN {printf "%.0f", (m*n)}')
+        echo "$POWER_LIM_OC" | tee "${HWMON_DIR}/power1_cap"
+
+        # avoid display flickering, force OC'd memory to highest clock
+        echo '3' | tee /sys/class/drm/"${CARD}"/device/pp_dpm_mclk
+
+        # extract the VR power profile ID number
+        PROF_VR_NUM=$(/usr/bin/awk '$0 ~ /VR.*:/ {print $1}' <<< "$PROFILE_MODES")
+
+        # force 'overclocked' profile to 'VR' power/clock heuristics
+        # latency/frame timing seemed favorable with relatively-close minimum clocks
+        echo "${PROF_VR_NUM}" | tee /sys/class/drm/"${CARD}"/device/pp_power_profile_mode
+
+        # delay before returning - have mercy, may be followed with other profile function calls
+        sleep 0.5
+
+}
+
+function amdgpu_profile_help() {
+        echo "Usage: $0 {reset|overclock|peak}"
+        exit 1
+}
+
+# Check if an argument was provided
+if [ -z "$1" ]; then
+        amdgpu_profile_help
+fi
+
+# 'tuned' has trouble running scripts with args - treats '/path/to/script.sh arg1' as one complete item
+# so, based on the active profile - run the right function
+read -r -d '' TUNED_PROFILE < /etc/tuned/active_profile
+
+case "$TUNED_PROFILE" in
+        *-amdgpu-default)
+                amdgpu_profile_reset
+                ;;
+        *-amdgpu-overclock)
+                amdgpu_profile_reset
+                amdgpu_profile_overclock
+                ;;
+        *-amdgpu-peak)
+                # do everything the other profiles do... then set each clock table to their peak
+                amdgpu_profile_reset
+                amdgpu_profile_overclock
+                echo '1' | tee /sys/class/drm/"${CARD}"/device/pp_dpm_sclk
+                echo '3' | tee /sys/class/drm/"${CARD}"/device/pp_dpm_mclk
+                echo '2' | tee /sys/class/drm/"${CARD}"/device/pp_dpm_fclk
+                echo '2' | tee /sys/class/drm/"${CARD}"/device/pp_dpm_socclk
+                # if I understand correctly, 'power_dpm_force_performance_level' at 'profile_peak' achieves similar... but precludes some control
+                ;;
+        *)
+                amdgpu_profile_help
+                ;;
+esac

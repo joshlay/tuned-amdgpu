@@ -40,6 +40,22 @@
   notify: Restart tuned
   become: true
 
+- name: Configure profile vars
+  ansible.builtin.lineinfile:
+    path: /etc/tuned/amdgpu-profile-vars.conf
+    line: "{{ item }}={{ vars[item] }}"
+    regexp: "^{{ item }}="
+    create: true
+    mode: '0644'
+  when: vars[item] is defined
+  with_items:
+    - gpu_clock_min
+    - gpu_clock_max
+    - gpumem_clock_static
+    - gpu_power_multi_def
+    - gpu_power_multi_oc
+    - gpu_mv_offset
+
 - name: Create custom profile directories
   ansible.builtin.file:
     state: directory
@@ -50,27 +66,13 @@
     - "{{ base_profiles }}"
   become: true
 
-- name: Copy 'common' AMDGPU script for all profiles
+- name: Template AMDGPU profile script
   ansible.builtin.template:
-    src: profile-common.sh.j2
-    dest: "{{ (tuned_amdgpu_profile_dir, item.1 + '-amdgpu-' + item.0, 'amdgpu-common.sh') | ansible.builtin.path_join }}"
-    mode: "0644"  # sourced, doesn't require executable bit
-    owner: root
-    group: root
-  notify: Restart tuned
-  with_nested:
-    - "{{ amdgpu_profiles }}"
-    - "{{ base_profiles }}"
-  become: true
-
-- name: Template custom AMDGPU profile scripts
-  ansible.builtin.template:
-    src: amdgpu-profile-{{ item.0 }}.sh.j2
-    dest: "{{ (tuned_amdgpu_profile_dir, item.1 + '-amdgpu-' + item.0, 'amdgpu-clock.sh') | ansible.builtin.path_join }}"
+    src: amdgpu-profile.sh.j2
+    dest: "{{ (tuned_amdgpu_profile_dir, 'amdgpu-clock.sh') | ansible.builtin.path_join }}"  # place in base dir for all profiles, called w/ arg
     owner: root
     group: root
     mode: "0755"
-  loop: "{{ amdgpu_profiles | product(base_profiles) | list }}"
   notify: Restart tuned
   become: true
 

@@ -34,9 +34,36 @@ Two _'profiles'_ are in each name:
 | `desktop-amdgpu-overclock` | Includes the (assumed) existing `desktop` tuned profile.<br/><br/>Adjusts the GPU power limit, clocks, _and_ the voltage curve. |
 | `desktop-amdgpu-peak` | Includes the (assumed) existing `desktop` tuned profile.<br/><br/>Same as the `overclock` profile, but locks clocks to their highest configured values |
 
-## Notable variables
+## Config
 
-These are the variables you're likely to want to change.  They are defined in [playbook.yml](playbook.yml)
+The playbook will render this config file: `/etc/tuned/amdgpu-profile-vars.conf`
+
+Here is a preview:
+
+```shell
+gpu_clock_min=500
+gpu_clock_max=2715
+gpumem_clock_static=1075
+gpu_power_multi_def=0.869969040247678
+gpu_power_multi_oc=1.0
+gpu_mv_offset=+60
+```
+
+Changes will require switching `tuned` profiles to re-read/apply the config.
+
+One can use [gamemode](https://wiki.archlinux.org/title/Gamemode) to do this automatically on start/stop.
+
+Sample `~/.config/gamemode.ini`:
+
+```ini
+[custom]
+start=tuned-adm profile latency-performance-amdgpu-overclock
+end=tuned-adm profile latency-performance-amdgpu-default
+```
+
+## Variables
+
+These are the variables you'll want to change/consider.
 
 | Variable               | Description                                                                           |  
 |------------------------|---------------------------------------------------------------------------------------|  
@@ -45,4 +72,5 @@ These are the variables you're likely to want to change.  They are defined in [p
 | gpumem_clock_static       | Sets the _static_ memory clock for the GPU (in `MHz`).  This is *not* the _effective_ data rate.  That is a multiple of this depending on the type of VRAM.<br/><br/>To avoid flickering this does *not* change dynamically with load. |  
 | gpu_mv_offset          | GPU core voltage offset.  Takes +/- some integer in millivolts.  Can be used to both over _and_ under volt. eg: `-50` _(undervolt `50mV` or `0.05V`)_ |  
 | base_profiles          | List of base tuned profiles to clone in the new AMDGPU profiles.  Defaults based on `Fedora` |  
-| gpu_power_multi        | Dictionary with two keys, `default` and `overclock`. Expects two floats to set a power limit relative to the board _capability_. Example: `1.0` is full board capability, `0.5` is 50%. |  
+| gpu_power_multi_def    | Float between `0.0` and `1.0`; controls power limit relative to the board _capability_. For _'default'_-named power profiles. |  
+| gpu_power_multi_oc     | Similar to `gpu_power_multi_def`, for _'overclock'_-named power profiles. |  

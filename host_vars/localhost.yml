@@ -9,23 +9,21 @@
 # default 500, for best performance: near maximum. applies with 'overclock' tuned profile
 gpu_clock_min: "500"
 
-# gpu_clock_max: "2675" # default somewhere around 2529 to 2660.
+# gpu_clock_max: "2675" # default 2524 for my card
 gpu_clock_max: "2715"
 
 gpumem_clock_static: "1075"
 
-gpu_power_multi:
-  default: 0.869969040247678  # 281W - real default
-  # overclock: 0.928792569659443  # 300W
-  # overclock: 0.959752321981424  # 310W
-  overclock: 1.0 # 323W - full board capability
-# optional, applies offset (+/-) to GPU voltage by provided mV
-# only counts for peak and overlock profiles
-#      gpu_mv_offset: "-20"
+gpu_power_multi_def: 0.869969040247678  # 281W - real default
+gpu_power_multi_oc: 1.0  # full board power capability
+# other multipliers for 323W boards like mine:
+#   300W: 0.928792569659443
+#   310:  0.959752321981424
+# sample worksheet in 'power_max multi tab calculator.ods'
 
+gpu_mv_offset: "+60" # add 60mV or 0.06V
 # gpu_mv_offset: "+150" # add 150mV or 0.15V
 # gpu_mv_offset: "+133" # add 133mV or 0.133V
-gpu_mv_offset: "+60" # add 60mV or 0.06V
 #      gpu_mv_offset: "+75" # add 75mV or 0.075V
 #      gpu_mv_offset: "+125" # add 125mV or 0.125V
 # '-50' undervolts GPU core voltage 50mV or 0.05V; untested - here be dragons/instability
