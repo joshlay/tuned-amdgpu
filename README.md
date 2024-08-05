@@ -40,7 +40,7 @@ The playbook will render this config file: `/etc/tuned/amdgpu-profile-vars.conf`
 
 Here is a preview:
 
-```shell
+```bash
 gpu_clock_min=500
 gpu_clock_max=2715
 gpumem_clock_static=1075
