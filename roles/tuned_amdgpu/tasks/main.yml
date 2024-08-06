@@ -11,12 +11,14 @@
   when: ansible_facts['packages']['tuned'][0]['version'] is version('2.23.0', '<')  # versions are in a list...? pick the first; only expect one
 
 # around Fedora 35/36, the packages for 'power-profiles-daemon' and 'tuned' conflicted; no more - can coincide
-# ensuring the service is masked should suffice for their conflicts
-- name: Ensure power-profiles-daemon is disabled/masked
+# ensuring the service is masked should suffice - not removed;  gnome/others may 'require' it. doing so may remove them implicitly
+- name: Ensure power-profiles-daemon is off/disabled/masked
   ansible.builtin.systemd_service:
     name: power-profiles-daemon
     enabled: false
     masked: true
+    state: stopped
+  when: "'power-profiles-daemon' in ansible_facts['packages']"
   become: true
 
 - name: Ensure 'tuned' is installed
