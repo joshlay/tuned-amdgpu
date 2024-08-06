@@ -10,26 +10,19 @@
     tuned_amdgpu_profile_dir: "/etc/tuned"
   when: ansible_facts['packages']['tuned'][0]['version'] is version('2.23.0', '<')  # versions are in a list...? pick the first; only expect one
 
-# note: power-profiles-daemon conflicts with tuned
-# since F35 it must be removed so tuned may be installed
-- name: Replace 'power-profiles-daemon' with 'tuned' on Fedora 35+
-  ansible.builtin.package: # use with_items/pkg since 'dnf' module in Ansible doesn't support 'swap'
-    name: "{{ item.name }}"
-    state: "{{ item.state }}"
-  with_items:
-    - {name: 'power-profiles-daemon', state: 'absent'}
-    - {name: 'tuned', state: 'present'}
-  when:
-    - ansible_distribution == 'Fedora'
-    - ansible_distribution_major_version|int > 35
-  register: fed_ppdtuned_swap
+# around Fedora 35/36, the packages for 'power-profiles-daemon' and 'tuned' conflicted; no more - can coincide
+# ensuring the service is masked should suffice for their conflicts
+- name: Ensure power-profiles-daemon is disabled/masked
+  ansible.builtin.systemd_service:
+    name: power-profiles-daemon
+    enabled: false
+    masked: true
   become: true
 
-- name: Install tuned
+- name: Ensure 'tuned' is installed
   ansible.builtin.package:
     name: tuned
     state: present
-  when: (fed_ppdtuned_swap is not defined) or ('tuned' not in ansible_facts.packages)
   become: true
 
 - name: Ensure dynamic tuning is disabled
@@ -40,7 +33,7 @@
   notify: Restart tuned
   become: true
 
-- name: Configure profile vars
+- name: Configure vars in '/etc/tuned/amdgpu-profile-vars.conf'
   ansible.builtin.lineinfile:
     path: /etc/tuned/amdgpu-profile-vars.conf
     line: "{{ item }}={{ vars[item] }}"
@@ -55,6 +48,7 @@
     - gpu_power_multi_def
     - gpu_power_multi_oc
     - gpu_mv_offset
+  become: true
 
 - name: Create custom profile directories
   ansible.builtin.file:
