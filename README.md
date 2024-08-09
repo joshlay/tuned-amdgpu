@@ -3,15 +3,8 @@
 Hacky solution to integrate AMDGPU power/clock control into `tuned` profiles
 with Ansible.
 
-Extends existing profiles, such as:
-
-- `balanced`
-- `desktop`
-- `latency-performance`
-- `network-latency`
-- `powersave`, and so on
-
-Creating three variations of each, using the [AMDGPU hwmon interfaces](https://docs.kernel.org/gpu/amdgpu/thermal.html):
+Provides three variations of the `tuned` profiles found in `/usr/lib/tuned`
+using the [AMDGPU hwmon interfaces](https://docs.kernel.org/gpu/amdgpu/thermal.html):
 
 - `default`: the out-of-the-box configuration
 - `overclock`: the optimized card configuration. Includes all of the clock/voltage/power settings
@@ -71,6 +64,5 @@ These are the variables you'll want to change/consider.
 | gpu_clock_max          | Sets the max (dynamic) GPU clock (in `MHz`) for the non-default `amdgpu` profiles |  
 | gpumem_clock_static       | Sets the _static_ memory clock for the GPU (in `MHz`).  This is *not* the _effective_ data rate.  _That_ would be a multiple of _this_ depending on the type of VRAM.<br/><br/>To avoid flickering this is *not* allowed to change with load, only between `default` and `overclock`/`peak` profiles. |  
 | gpu_mv_offset          | GPU core voltage offset.  Takes +/- some integer in millivolts.  Can be used to both over _and_ under volt. eg: `-50` _(undervolt `50mV` or `0.05V`)_ |  
-| base_profiles          | List of base tuned profiles to clone in the new AMDGPU profiles.  Defaults based on `Fedora` |  
 | gpu_power_multi_def    | Float between `0.0` and `1.0`; controls power limit relative to the board _capability_. For _'default'_-named power profiles. |  
 | gpu_power_multi_oc     | Similar to `gpu_power_multi_def`, for _'overclock'_-named power profiles. |  

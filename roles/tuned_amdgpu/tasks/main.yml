@@ -27,6 +27,24 @@
     state: present
   become: true
 
+- name: Find bundled 'tuned' profiles
+  ansible.builtin.find:
+    paths:
+      - /usr/lib/tuned/  # this may change/benefit from var/defaults; packaging should generally prefer this path
+    patterns:
+      - 'tuned.conf'
+    recurse: true
+  register: tuned_bundled_configs
+
+- name: Set fact with included profile names
+  ansible.builtin.set_fact:
+    base_profiles: "{{ base_profiles | default([]) + profile_name }}"
+  loop: "{{ tuned_bundled_configs.files }}"
+  loop_control:
+    label: "{{ profile_name }}"
+  vars:
+    profile_name: "{{ [item.path | dirname | basename] }}"
+
 - name: Ensure dynamic tuning is disabled
   ansible.builtin.lineinfile:
     path: /etc/tuned/tuned-main.conf
