@@ -1,5 +1,6 @@
 ---
-# the profile tries to find the amdgpu GPU with displays for applying these settings
+# the profile tries to find the card with displays attached to apply these settings.
+# configuration of many GPUs not yet supported, one is assumed
 gpu_clock_min: "500"
 gpu_clock_max: "2715"
 gpumem_clock_static: "1075"
