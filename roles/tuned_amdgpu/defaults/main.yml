@@ -11,4 +11,4 @@ amdgpu_profiles:
   - overclock
   - peak
 
-tuned_amdgpu_profile_dir: '/etc/tuned/profiles'  # introduced in '2.23.0-1'
+tuned_amdgpu_profile_dir: "{{ '/etc/tuned' if ansible_facts['packages']['tuned'][0]['version'] is version('2.23.0', '<') else '/etc/tuned/profiles' }}"

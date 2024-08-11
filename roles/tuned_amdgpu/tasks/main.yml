@@ -5,11 +5,6 @@
   ansible.builtin.package_facts:
     manager: auto
 
-- name: Use legacy custom-profile directory when < 2.23.0
-  ansible.builtin.set_fact:
-    tuned_amdgpu_profile_dir: "/etc/tuned"
-  when: ansible_facts['packages']['tuned'][0]['version'] is version('2.23.0', '<')  # versions are in a list...? pick the first; only expect one
-
 # around Fedora 35/36, the packages for 'power-profiles-daemon' and 'tuned' conflicted; no more - can coincide
 # ensuring the service is masked should suffice - not removed;  gnome/others may 'require' it. doing so may remove them implicitly
 - name: Ensure power-profiles-daemon is off/disabled/masked
