@@ -11,7 +11,8 @@ gpu_power_multi_oc: 1.0  # full board power capability
 #   310:  0.959752321981424
 # sample worksheet in 'power_max multi tab calculator.ods'
 
-gpu_mv_offset: "+75" # add 75mV or 0.075V
+gpu_mv_offset: "+25" # add 25mV or 0.025V
+# gpu_mv_offset: "+75" # add 75mV or 0.075V
 # gpu_mv_offset: "+150" # add 150mV or 0.15V
 # gpu_mv_offset: "+133" # add 133mV or 0.133V
 #      gpu_mv_offset: "+75" # add 75mV or 0.075V
