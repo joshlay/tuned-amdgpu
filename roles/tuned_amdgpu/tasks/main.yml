@@ -57,12 +57,12 @@
     mode: '0644'
   when: vars[item] is defined
   with_items:
-    - gpu_clock_min
-    - gpu_clock_max
-    - gpumem_clock_static
-    - gpu_power_multi_def
-    - gpu_power_multi_oc
-    - gpu_mv_offset
+    - tuned_amdgpu_clock_min
+    - tuned_amdgpu_clock_max
+    - tuned_amdgpu_memclock_static
+    - tuned_amdgpu_power_multi_def
+    - tuned_amdgpu_power_multi_oc
+    - tuned_amdgpu_mv_offset
   become: true
 
 - name: Create custom profile directories

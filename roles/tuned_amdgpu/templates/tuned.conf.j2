@@ -14,8 +14,8 @@ include=/etc/tuned/amdgpu-profile-vars.conf
 type=script
 script={{ (tuned_amdgpu_profile_dir, 'amdgpu-clock.sh') | ansible.builtin.path_join }}
 {# call the state-managing script with the selected profile, item.0, as an argument #}
-{% if plugins is defined %}
-{% for section, options in plugins.items() %}
+{% if tuned_amdgpu_plugins is defined %}
+{% for section, options in tuned_amdgpu_plugins.items() %}
 {#+ give each plugin section some space +#}
 [{{ section }}]
 {% for key, value in options.items() %}
