@@ -7,7 +7,7 @@ Extends every `tuned` profile found in `/usr/lib/tuned`
 with [AMDGPU hwmon interfaces](https://docs.kernel.org/gpu/amdgpu/thermal.html) in three variations:
 
 - `default`: the out-of-the-box GPU clock/power configuration
-- `overclock`: the _optimized_ card configuration. Includes the clock/voltage/power settings.
+- `overclock`: the _optimized_ card configuration. Includes [profile variables](#variables) with clock/voltage/power.
 - `peak`: the same as `overclock` with gating removed. Intended for profiling.
 
 Contrary to the name, the `overclock` profile may also be used to _under-{volt,clock}_.
