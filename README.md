@@ -15,8 +15,9 @@ Contrary to the name, the `overclock` profiles can be used to de-tune the card a
 
 ## Assumptions / Limitations
 
-Only tested with `RX6000` series GPUs, others may _not_ work properly.
-Please use at your own risk!
+Only tested with `RX6000` series GPUs and the _mainline_ `amdgpu` driver.
+
+Other permutations may _not_ work properly. Please use at your own risk!
 
 Multiple GPUs in a single system are not yet managed,
 assumes a single GPU with displays attached.
