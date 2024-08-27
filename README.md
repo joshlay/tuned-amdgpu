@@ -14,6 +14,11 @@ Contrary to the name, the `overclock` profiles can be used to de-tune the card a
 
 _Warning_: This is only tested with `RX6000` series GPUs, others may _not_ work properly. Use at your own risk!
 
+## Assumptions / Limitations
+
+Multiple GPUs in a single system are not yet supported.
+This role assumes management over a single GPU with displays attached.
+
 ## Profiles
 
 Two _'profiles'_ are in each name:
