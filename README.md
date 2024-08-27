@@ -4,13 +4,13 @@ Hacky solution to integrate AMDGPU power/clock control into `tuned` profiles
 with Ansible.
 
 Extends every `tuned` profile found in `/usr/lib/tuned`
-using the [AMDGPU hwmon interfaces](https://docs.kernel.org/gpu/amdgpu/thermal.html):
+with [AMDGPU hwmon interfaces](https://docs.kernel.org/gpu/amdgpu/thermal.html) in three variations:
 
 - `default`: the out-of-the-box GPU clock/power configuration
 - `overclock`: the _optimized_ card configuration. Includes the clock/voltage/power settings outlined below.
 - `peak`: the same as `overclock`, but with clock gating removed. May help profiling.
 
-Contrary to the name, the `overclock` profiles can be used to de-tune the card as well.
+Contrary to the name, the resulting `overclock` profile may also be used to _under-{volt,clock}_.
 
 
 ## Assumptions / Limitations
@@ -22,6 +22,33 @@ Multiple GPUs in a single system are not yet managed,
 assumes a single GPU with displays attached.
 
 Please report any issues or PRs, all will be considered.
+
+
+## Config
+
+```ini
+; file: /etc/tuned/amdgpu-profile-vars.conf
+tuned_amdgpu_clock_min=500
+tuned_amdgpu_clock_max=2715
+tuned_amdgpu_memclock_static=1075
+tuned_amdgpu_power_multi_def=0.869969040247678
+tuned_amdgpu_power_multi_oc=1.0
+tuned_amdgpu_mv_offset=+60
+```
+_(rendered example)_
+
+These represent the [Variables below](#Variables); changes outside of _Ansible_
+are not immediately effective, requiring switching profiles or restarting the service.
+
+The `gamemode` service offers dynamic switching. Please see this [Arch Wiki](https://wiki.archlinux.org/title/Gamemode) document
+for more information on `gamemode`. Example:
+
+```ini
+; ~/.config/gamemode.ini snippet
+[custom]
+start=tuned-adm profile latency-performance-amdgpu-overclock
+end=tuned-adm profile latency-performance-amdgpu-default
+```
 
 ## Profiles
 
@@ -36,32 +63,6 @@ Two _'profiles'_ are in each name:
 | `desktop-amdgpu-overclock` | Includes the (assumed) existing `desktop` tuned profile.<br/><br/>Adjusts the GPU power limit, clocks, _and_ the voltage curve. |
 | `desktop-amdgpu-peak` | Includes the (assumed) existing `desktop` tuned profile.<br/><br/>Same as the `overclock` profile, but locks clocks to their highest configured values |
 
-## Config
-
-Preview:
-
-```ini
-; file: /etc/tuned/amdgpu-profile-vars.conf
-tuned_amdgpu_clock_min=500
-tuned_amdgpu_clock_max=2715
-tuned_amdgpu_memclock_static=1075
-tuned_amdgpu_power_multi_def=0.869969040247678
-tuned_amdgpu_power_multi_oc=1.0
-tuned_amdgpu_mv_offset=+60
-```
-These represent the [Variables below](#Variables); changes outside of _Ansible_ are not immediately effective.
-These require switching profiles or restarting the `tuned` service.
-
-The `gamemode` service offers dynamic switching, example:
-
-```ini
-; ~/.config/gamemode.ini snippet
-[custom]
-start=tuned-adm profile latency-performance-amdgpu-overclock
-end=tuned-adm profile latency-performance-amdgpu-default
-```
-
-Please see this [Arch Wiki](https://wiki.archlinux.org/title/Gamemode) link for more information.
 
 ## Variables
 
