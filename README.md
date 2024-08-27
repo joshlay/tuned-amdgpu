@@ -7,10 +7,10 @@ Extends every `tuned` profile found in `/usr/lib/tuned`
 with [AMDGPU hwmon interfaces](https://docs.kernel.org/gpu/amdgpu/thermal.html) in three variations:
 
 - `default`: the out-of-the-box GPU clock/power configuration
-- `overclock`: the _optimized_ card configuration. Includes the clock/voltage/power settings outlined below.
-- `peak`: the same as `overclock`, but with clock gating removed. May help profiling.
+- `overclock`: the _optimized_ card configuration. Includes the clock/voltage/power settings.
+- `peak`: the same as `overclock` with gating removed. Intended for profiling.
 
-Contrary to the name, the resulting `overclock` profile may also be used to _under-{volt,clock}_.
+Contrary to the name, the `overclock` profile may also be used to _under-{volt,clock}_.
 
 
 ## Assumptions / Limitations
@@ -35,13 +35,12 @@ tuned_amdgpu_power_multi_def=0.869969040247678
 tuned_amdgpu_power_multi_oc=1.0
 tuned_amdgpu_mv_offset=+60
 ```
-_(rendered example)_
 
-These represent the [Variables below](#Variables); changes outside of _Ansible_
+These represent the [Variables below](#variables); changes outside of _Ansible_
 are not immediately effective, requiring switching profiles or restarting the service.
 
 The `gamemode` service offers dynamic switching. Please see this [Arch Wiki](https://wiki.archlinux.org/title/Gamemode) document
-for more information on `gamemode`. Example:
+for more information. Example:
 
 ```ini
 ; ~/.config/gamemode.ini snippet
