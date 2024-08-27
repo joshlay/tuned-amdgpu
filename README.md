@@ -38,11 +38,10 @@ Two _'profiles'_ are in each name:
 
 ## Config
 
-The playbook will render/make effective this config file: `/etc/tuned/amdgpu-profile-vars.conf`
-
-Here is a preview:
+Preview:
 
 ```ini
+; file: /etc/tuned/amdgpu-profile-vars.conf
 tuned_amdgpu_clock_min=500
 tuned_amdgpu_clock_max=2715
 tuned_amdgpu_memclock_static=1075
@@ -50,17 +49,19 @@ tuned_amdgpu_power_multi_def=0.869969040247678
 tuned_amdgpu_power_multi_oc=1.0
 tuned_amdgpu_mv_offset=+60
 ```
-These are the result of [Variables](#Variables) below; changes outside of _Ansible_ are not immediately effective. Switching `tuned` profiles or restarting the service would be required.
+These represent the [Variables below](#Variables); changes outside of _Ansible_ are not immediately effective.
+These require switching profiles or restarting the `tuned` service.
 
-One can use `gamemode` for dynamic switching. Sample `~/.config/gamemode.ini` below:
+The `gamemode` service offers dynamic switching, example:
 
 ```ini
+; ~/.config/gamemode.ini snippet
 [custom]
 start=tuned-adm profile latency-performance-amdgpu-overclock
 end=tuned-adm profile latency-performance-amdgpu-default
 ```
 
-See this [Arch Wiki](https://wiki.archlinux.org/title/Gamemode) link for more comprehensive information.
+Please see this [Arch Wiki](https://wiki.archlinux.org/title/Gamemode) link for more information.
 
 ## Variables
 
