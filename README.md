@@ -59,9 +59,9 @@ These are the variables you'll want to change/consider.
 
 | Variable               | Description |  
 |------------------------|-------------|  
-| `tuned_amdgpu_clock_min` | Mininum GPU clock _(in `Mhz`)_ for `overclock` and `peak` profiles |  
-| `tuned_amdgpu_clock_max` | Maximum GPU clock _(in `MHz`)_ for `overclock` and `peak` profiles` |  
-| `tuned_amdgpu_memclock_static` | _Static_ GPU **memory** clock _(in `MHz`)_ for `overclock` and `peak` profiles. Not the effective data rate _(multiplied by generation)_, but the actual clock. Static assignment avoids potential display flickering. |  
-| `tuned_amdgpu_mv_offset` | GPU core voltage offset.  Takes +/- some integer in millivolts.  Can be used to both over _and_ under volt. eg: `-50` _(undervolt `50mV` or `0.05V`)_ |  
-| `tuned_amdgpu_power_multi_def` | Float between `0.0` and `1.0`; controls power limit relative to the board _capability_ for the `default` profiles |  
-| `tuned_amdgpu_power_multi_oc` | Similar to `tuned_amdgpu_power_multi_def`, for `overclock` and `peak` profiles |  
+| `tuned_amdgpu_clock_min` | Mininum **GPU** clock _(in `Mhz`)_ for `overclock` and `peak` profiles |  
+| `tuned_amdgpu_clock_max` | Maximum **GPU** clock _(in `MHz`)_ for `overclock` and `peak` profiles |  
+| `tuned_amdgpu_mv_offset` | GPU voltage _offset_. Takes `+/-` some integer in _millivolts_ to raise or lower. eg: `-25` for `0.025V` undervolt. |  
+| `tuned_amdgpu_power_multi_def` | Float between `0.0` _(none)_ and `1.0` _(full)_; effective power limit relative to _board capability_. For the `default` profiles |  
+| `tuned_amdgpu_power_multi_oc` | Instance of `tuned_amdgpu_power_multi_def` for `overclock` and `peak` profiles |  
+| `tuned_amdgpu_memclock_static` | _Static_ **memory** clock _(in `MHz`)_ for `overclock` and `peak` profiles.<br/><br/>Not the effective data rate _(multiplied by generation)_, but the actual clock. Static assignment avoids potential display flickering. |  
