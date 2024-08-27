@@ -1,14 +1,5 @@
 ---
 # defaults file for tuned_amdgpu
 #
-
-# internals for profile power calculations
-# item in the context of the with_nested loops in the play
-profile_name: "{{ item.0 }}"
-
-amdgpu_profiles:
-  - default
-  - overclock
-  - peak
-
+# adjust where profiles are rendered based on the 'tuned' release from package facts
 tuned_amdgpu_profile_dir: "{{ '/etc/tuned' if ansible_facts['packages']['tuned'][0]['version'] is version('2.23.0', '<') else '/etc/tuned/profiles' }}"
