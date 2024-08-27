@@ -12,12 +12,14 @@ using the [AMDGPU hwmon interfaces](https://docs.kernel.org/gpu/amdgpu/thermal.h
 
 Contrary to the name, the `overclock` profiles can be used to de-tune the card as well.
 
-_Warning_: This is only tested with `RX6000` series GPUs, others may _not_ work properly. Use at your own risk!
 
 ## Assumptions / Limitations
 
-Multiple GPUs in a single system are not yet supported.
-This role assumes management over a single GPU with displays attached.
+Only tested with `RX6000` series GPUs, others may _not_ work properly.
+Please use at your own risk!
+
+Multiple GPUs in a single system are not yet managed,
+assumes a single GPU with displays attached.
 
 ## Profiles
 
