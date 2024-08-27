@@ -57,11 +57,11 @@ See this [Arch Wiki](https://wiki.archlinux.org/title/Gamemode) link for more co
 
 These are the variables you'll want to change/consider.
 
-| Variable               | Description                                                                           |  
-|------------------------|---------------------------------------------------------------------------------------|  
-| `tuned_amdgpu_clock_min` | Sets the min (dynamic) GPU clock (in `Mhz`) for the non-default `amdgpu` profiles |  
-| `tuned_amdgpu_clock_max` | Sets the max (dynamic) GPU clock (in `MHz`) for the non-default `amdgpu` profiles |  
-| `tuned_amdgpu_memclock_static` | Sets the _static_ memory clock for the GPU (in `MHz`).  This is *not* the _effective_ data rate.  _That_ would be a multiple of _this_ depending on the type of VRAM.<br/><br/>To avoid flickering this is *not* allowed to change with load, only between `default` and `overclock`/`peak` profiles. |  
+| Variable               | Description |  
+|------------------------|-------------|  
+| `tuned_amdgpu_clock_min` | Mininum GPU clock _(in `Mhz`)_ for `overclock` and `peak` profiles |  
+| `tuned_amdgpu_clock_max` | Maximum GPU clock _(in `MHz`)_ for `overclock` and `peak` profiles` |  
+| `tuned_amdgpu_memclock_static` | _Static_ GPU **memory** clock _(in `MHz`)_ for `overclock` and `peak` profiles. Not the effective data rate _(multiplied by generation)_, but the actual clock. Static assignment avoids potential display flickering. |  
 | `tuned_amdgpu_mv_offset` | GPU core voltage offset.  Takes +/- some integer in millivolts.  Can be used to both over _and_ under volt. eg: `-50` _(undervolt `50mV` or `0.05V`)_ |  
-| `tuned_amdgpu_power_multi_def` | Float between `0.0` and `1.0`; controls power limit relative to the board _capability_. For _'default'_-named power profiles. |  
-| `tuned_amdgpu_power_multi_oc` | Similar to `tuned_amdgpu_power_multi_def`, for resulting _`overclock` and `peak` power profiles. |  
+| `tuned_amdgpu_power_multi_def` | Float between `0.0` and `1.0`; controls power limit relative to the board _capability_ for the `default` profiles |  
+| `tuned_amdgpu_power_multi_oc` | Similar to `tuned_amdgpu_power_multi_def`, for `overclock` and `peak` profiles |  
