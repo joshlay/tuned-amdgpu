@@ -9,6 +9,8 @@
 # Variables shown below named '$TUNED_...' are given values by '/etc/tuned/amdgpu-profile-vars.conf'
 #
 # determine the connected GPU using the DRM subsystem. FIXME: assumes one card, make configurable
+# TODO: break this out into a role var; assume renderD128
+#       allow/use many configs
 CARD=$(/usr/bin/grep -ls ^connected /sys/class/drm/*/status | /usr/bin/grep -o 'card[0-9]' | /usr/bin/sort | /usr/bin/uniq | /usr/bin/sort -h | /usr/bin/tail -1)
 
 function get_hwmon_dir() {
@@ -20,7 +22,6 @@ function get_hwmon_dir() {
             fi
     done
 }
-
 
 # determine the hwmon directory
 HWMON_DIR=$(get_hwmon_dir "${CARD}")
@@ -51,11 +52,16 @@ function amdgpu_profile_reset() {
         echo "${PROF_DEFAULT_NUM}" | tee /sys/class/drm/"${CARD}"/device/pp_power_profile_mode
 
         # delay before returning - have mercy, may be followed with other profile function calls
-        sleep 0.5
+        sleep 0.25
 
 }
 
 function amdgpu_profile_overclock() {
+        # set manual control mode
+        #   allows control via 'pp_dpm_mclk', 'pp_dpm_sclk', 'pp_dpm_pcie', 'pp_dpm_fclk', and 'pp_power_profile_mode' files
+        echo 'manual' | tee /sys/class/drm/"${CARD}"/device/power_dpm_force_performance_level
+
+        # force GPU core and memory into highest clocks (fix flickering and poor power management)
         echo "s 0 ${TUNED_tuned_amdgpu_clock_min}" | tee /sys/class/drm/"${CARD}"/device/pp_od_clk_voltage
         echo "s 1 ${TUNED_tuned_amdgpu_clock_max}" | tee /sys/class/drm/"${CARD}"/device/pp_od_clk_voltage
         echo "m 1 ${TUNED_tuned_amdgpu_memclock_static}" | tee /sys/class/drm/"${CARD}"/device/pp_od_clk_voltage
@@ -67,11 +73,6 @@ function amdgpu_profile_overclock() {
 
         # commit the changes
         echo 'c' | tee /sys/class/drm/"${CARD}"/device/pp_od_clk_voltage
-
-        # force GPU core and memory into highest clocks (fix flickering and poor power management)
-        # set manual control mode
-        #   allows control via 'pp_dpm_mclk', 'pp_dpm_sclk', 'pp_dpm_pcie', 'pp_dpm_fclk', and 'pp_power_profile_mode' files
-        echo 'manual' | tee /sys/class/drm/"${CARD}"/device/power_dpm_force_performance_level
 
         # adjust power limit using multiplier against board capability
         POWER_LIM_OC=$(/usr/bin/awk -v m="$POWER_CAP" -v n="${TUNED_tuned_amdgpu_power_multi_oc}" 'BEGIN {printf "%.0f", (m*n)}')
@@ -88,7 +89,7 @@ function amdgpu_profile_overclock() {
         echo "${PROF_VR_NUM}" | tee /sys/class/drm/"${CARD}"/device/pp_power_profile_mode
 
         # delay before returning - have mercy, may be followed with other profile function calls
-        sleep 0.5
+        sleep 0.25
 
 }
 
