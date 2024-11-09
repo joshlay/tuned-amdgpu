@@ -2,7 +2,7 @@
 # the profile tries to find the card with displays attached to apply these settings.
 # configuration of many GPUs not yet supported, one is assumed
 tuned_amdgpu_clock_min: "500"
-tuned_amdgpu_clock_max: "2715"
+tuned_amdgpu_clock_max: "2725"
 tuned_amdgpu_memclock_static: "1075"
 tuned_amdgpu_power_multi_def: 0.869969040247678  # 281W - real default
 tuned_amdgpu_power_multi_oc: 1.0  # full board power capability
@@ -11,16 +11,25 @@ tuned_amdgpu_power_multi_oc: 1.0  # full board power capability
 #   310:  0.959752321981424
 # sample worksheet in 'power_max multi tab calculator.ods'
 
-tuned_amdgpu_mv_offset: "+45" # add 45mV / 0.045V
+tuned_amdgpu_mv_offset: "+70" # add 70mV / 0.07V
 # '-50' undervolts GPU core voltage 50mV / 0.05V; warning: here be dragons/instability
 
 # 'tuned' plugins - used to set the kernel cmdline via bootloader... and sysctl tunables
 tuned_amdgpu_plugins:  # ref: https://github.com/redhat-performance/tuned/tree/master/tuned/plugins
+  rt_gamescope:
+    type: script
+    script: '/etc/tuned/rt_gamescope.sh'  # ensures gamescope has proper capability when profile is loaded
+  cpu:
+    boost: 1
+    governor: performance
+    energy_perf_bias: performance
   bootloader:  #  'cmdline' allows entries w/ a suffix, names should be unique across *all* profiles. values accept +/- operators
-    cmdline_amdgpu_general: "delayacct nowatchdog kvm.ignore_msrs=1 kvm_amd.npt=1 amdgpu.ppfeaturemask=0xfff7ffff"
+    cmdline_amdgpu_general: "delayacct nowatchdog amdgpu.ppfeaturemask=0xfff7ffff"
+    # cmdline_kvm: 'kvm.ignore_msrs=1 kvm_amd.npt=1'
+    cmdline_amdgpu_kvm: 'kvm_amd.npt=1'
     cmdline_amdgpu_hugepages: "default_hugepagesz=1G hugepagesz=1G hugepages=16"
     cmdline_amdgpu_iommu: "amd_iommu=on iommu=pt"
-    cmdline_amdgpu_devs: "nvme_core.default_ps_max_latency_us=0 pci=realloc=off"
+    cmdline_amdgpu_nvme: "nvme_core.default_ps_max_latency_us=0"
   sysctl:  # quote ints/cast to string to avoid surprises
     kernel.dmesg_restrict: '0'  # allow regular users to see the kernel ring buffer
     # net.core.default_qdisc: fq  # congestion control
