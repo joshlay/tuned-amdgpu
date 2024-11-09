@@ -22,6 +22,12 @@
     state: present
   become: true
 
+- name: Ensure 'tuned-ppd' is absent
+  ansible.builtin.package:
+    name: tuned-ppd
+    state: absent
+  become: true
+
 - name: Find bundled 'tuned' profiles
   ansible.builtin.find:
     paths:
@@ -83,6 +89,15 @@
     group: root
     mode: "0755"
   notify: Restart tuned
+  become: true
+
+- name: Copy gamescope RT capability script
+  ansible.builtin.copy:
+    src: rt_gamescope.sh
+    dest: /etc/tuned/rt_gamescope.sh
+    owner: root
+    group: root
+    mode: '0755'
   become: true
 
 - name: Template tuned.conf for custom profiles
